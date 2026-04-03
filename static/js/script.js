@@ -2,31 +2,52 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mobile Navigation Toggle
     const hamburger = document.querySelector('.hamburger');
     const navLinks = document.querySelector('.nav-links');
-    const mobileMedia = window.matchMedia('(max-width: 768px)');
+    const mobileMedia = window.matchMedia('(max-width: 700px)');
 
     if (hamburger && navLinks) {
-        const closeMobileMenu = () => {
-            navLinks.classList.remove('mobile-open');
+        const isMobileViewport = () => mobileMedia.matches;
+        const setExpandedState = (isOpen) => {
+            hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         };
 
+        const closeMobileMenu = () => {
+            navLinks.classList.remove('mobile-open');
+            setExpandedState(false);
+        };
+
+        const syncDesktopState = () => {
+            if (!isMobileViewport()) {
+                navLinks.classList.remove('mobile-open');
+                navLinks.style.removeProperty('display');
+                setExpandedState(false);
+            }
+        };
+
+        // Start with menu closed and ensure desktop does not inherit stale mobile state.
+        closeMobileMenu();
+        syncDesktopState();
+
         hamburger.addEventListener('click', (event) => {
-            if (!mobileMedia.matches) {
+            if (!isMobileViewport()) {
                 return;
             }
+            event.preventDefault();
             event.stopPropagation();
-            navLinks.classList.toggle('mobile-open');
+            const willOpen = !navLinks.classList.contains('mobile-open');
+            navLinks.classList.toggle('mobile-open', willOpen);
+            setExpandedState(willOpen);
         });
 
         navLinks.querySelectorAll('a').forEach((link) => {
             link.addEventListener('click', () => {
-                if (mobileMedia.matches) {
+                if (isMobileViewport()) {
                     closeMobileMenu();
                 }
             });
         });
 
         document.addEventListener('click', (event) => {
-            if (!mobileMedia.matches) {
+            if (!isMobileViewport()) {
                 return;
             }
 
@@ -41,9 +62,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         window.addEventListener('resize', () => {
-            if (!mobileMedia.matches) {
+            if (!isMobileViewport()) {
                 closeMobileMenu();
             }
+            syncDesktopState();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeMobileMenu();
+            }
+        });
+
+        window.addEventListener('orientationchange', () => {
+            if (!isMobileViewport()) {
+                closeMobileMenu();
+            }
+            syncDesktopState();
+        });
+
+        // Handles browser back/forward cache restores where stale classes can persist.
+        window.addEventListener('pageshow', () => {
+            syncDesktopState();
+            if (isMobileViewport()) {
+                closeMobileMenu();
+            }
+        });
+
+        window.addEventListener('focus', () => {
+            syncDesktopState();
         });
     }
 

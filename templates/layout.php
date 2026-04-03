@@ -25,17 +25,18 @@ $pageTitle = $pageTitle ?? 'Functional Chronic Wellness';
                 <img src="<?= e(asset('images/logo.webp')) ?>" alt="Functional Chronic Wellness Logo" style="height: 50px; border-radius: 50%;">
                 <span>Functional Chronic Wellness</span>
             </a>
-            <ul class="nav-links">
+            <ul class="nav-links" id="primaryNav">
                 <li><a href="/" class="<?= $activePage === 'home' ? 'active' : '' ?>">Home</a></li>
                 <li><a href="/about" class="<?= $activePage === 'about' ? 'active' : '' ?>">About</a></li>
                 <li><a href="/services" class="<?= $activePage === 'services' ? 'active' : '' ?>">Services & Programs</a></li>
                 <li><a href="/resources" class="<?= $activePage === 'resources' ? 'active' : '' ?>">Resources</a></li>
                 <li><a href="/blogs" class="<?= $activePage === 'blogs' ? 'active' : '' ?>">Blogs</a></li>
-                <li><a href="/contact" class="btn-primary <?= $activePage === 'contact' ? 'active' : '' ?>">Book Consultation</a></li>
+                <li><a href="/enquiry" class="<?= $activePage === 'enquiry' ? 'active' : '' ?>">Register for Enquiry</a></li>
+                <li><a href="/contact" class="btn-primary <?= $activePage === 'contact' ? 'active' : '' ?>">Book Appointment</a></li>
             </ul>
-            <div class="hamburger">
+            <button type="button" class="hamburger" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="primaryNav">
                 <i class="fas fa-bars"></i>
-            </div>
+            </button>
         </div>
     </nav>
 
@@ -70,7 +71,8 @@ $pageTitle = $pageTitle ?? 'Functional Chronic Wellness';
                         <li><a href="/">Home</a></li>
                         <li><a href="/about">About Us</a></li>
                         <li><a href="/services">Services</a></li>
-                        <li><a href="/contact">Contact</a></li>
+                        <li><a href="/enquiry">Register for Enquiry</a></li>
+                        <li><a href="/contact">Book Appointment</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
@@ -102,11 +104,13 @@ $pageTitle = $pageTitle ?? 'Functional Chronic Wellness';
         <div class="glass-card" style="background: white; padding: 2rem; width: 100%; max-width: 400px; text-align: center; position: relative;">
             <span onclick="closeAdminModal()" style="position: absolute; top: 1rem; right: 1rem; cursor: pointer; font-size: 1.5rem;">&times;</span>
             <h3 style="color: var(--primary-color); margin-bottom: 1.5rem;">DB Manager Verification</h3>
-            <div style="margin-bottom: 1.5rem;">
-                <input type="password" id="adminPinInput" placeholder="Enter Admin PIN" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem;">
-                <p id="adminError" style="color: red; font-size: 0.9rem; margin-top: 0.5rem; display: none;">Invalid PIN. Try again.</p>
-            </div>
-            <button onclick="verifyAdmin()" class="btn-primary" style="width: 100%; padding: 0.8rem;">Verify & Enter</button>
+            <form id="adminVerifyForm" onsubmit="return verifyAdmin(event);" style="margin: 0;">
+                <div style="margin-bottom: 1.5rem;">
+                    <input type="password" id="adminPinInput" placeholder="Enter Admin PIN" required autocomplete="current-password" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem;">
+                    <p id="adminError" style="color: red; font-size: 0.9rem; margin-top: 0.5rem; display: none;">Invalid PIN. Try again.</p>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 0.8rem;">Verify & Enter</button>
+            </form>
         </div>
     </div>
 
@@ -114,6 +118,7 @@ $pageTitle = $pageTitle ?? 'Functional Chronic Wellness';
     <script>
         function openAdminModal() {
             document.getElementById('adminModal').style.display = 'flex';
+            document.getElementById('adminError').style.display = 'none';
             document.getElementById('adminPinInput').focus();
         }
 
@@ -123,8 +128,16 @@ $pageTitle = $pageTitle ?? 'Functional Chronic Wellness';
             document.getElementById('adminPinInput').value = '';
         }
 
-        async function verifyAdmin() {
-            const pin = document.getElementById('adminPinInput').value;
+        async function verifyAdmin(event) {
+            if (event) {
+                event.preventDefault();
+            }
+
+            const pin = document.getElementById('adminPinInput').value.trim();
+            if (pin === '') {
+                document.getElementById('adminError').style.display = 'block';
+                return false;
+            }
 
             const formData = new FormData();
             formData.append('pin', pin);
@@ -137,7 +150,7 @@ $pageTitle = $pageTitle ?? 'Functional Chronic Wellness';
 
                 if (response.ok) {
                     window.location.href = '/admin/contacts';
-                    return;
+                    return false;
                 }
 
                 document.getElementById('adminError').style.display = 'block';
@@ -145,6 +158,8 @@ $pageTitle = $pageTitle ?? 'Functional Chronic Wellness';
                 document.getElementById('adminError').style.display = 'block';
                 console.error(error);
             }
+
+            return false;
         }
 
         window.addEventListener('click', function (event) {

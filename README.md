@@ -12,7 +12,12 @@ This is a full PHP migration of the original FastAPI project for Hostinger share
 ## Features Preserved
 
 - Public pages: Home, About, Services, Resources
-- Contact form: DB save + SMTP notification
+- Register for Enquiry form (`/enquiry`): DB save + SMTP notification
+- Paid appointment flow (`/contact`):
+  - Booking form
+  - UPI payment page with GPay/PhonePe QR support
+  - Payment acknowledgement API
+  - Payment status API
 - Blog system: list, detail, admin CRUD (PIN-protected via DB manager)
 - Admin verify endpoint (`POST /admin/verify`)
 - Health assessment form (all original questions)
@@ -21,10 +26,14 @@ This is a full PHP migration of the original FastAPI project for Hostinger share
   - contact add/edit/delete
   - assessment edit/delete
   - blog add/edit/delete
+  - appointment payment verify/reject/delete
   - tabbed data manager
 - Health endpoints:
   - `GET /health`
   - `GET /health/db`
+- Payment endpoints:
+  - `POST /api/payments/acknowledge`
+  - `GET /api/payments/status/{booking_reference}`
 
 ## Project Structure
 
@@ -43,7 +52,7 @@ This is a full PHP migration of the original FastAPI project for Hostinger share
    ```bash
    cp .env.example .env
    ```
-2. Fill `.env` values (database, pin, smtp).
+2. Fill `.env` values (database, pin, smtp, appointment payment/UPI settings).
 3. Install dependencies:
    ```bash
    composer install --no-dev --optimize-autoloader

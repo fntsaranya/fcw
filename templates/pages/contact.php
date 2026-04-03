@@ -1,8 +1,8 @@
 <section class="hero-section" style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 4rem 1rem;">
     <div class="container">
         <div class="glass-card" style="max-width: 800px; margin: 0 auto;">
-            <h2 style="text-align: center; color: var(--primary-color); margin-bottom: 1rem;">Start Your Healing Journey</h2>
-            <p style="text-align: center; margin-bottom: 2rem;">Ready to find the root cause? Fill out the form below to request a consultation.</p>
+            <h2 style="text-align: center; color: var(--primary-color); margin-bottom: 1rem;">Register for Enquiry</h2>
+            <p style="text-align: center; margin-bottom: 2rem;">Have a question first? Share your details and we will connect with you.</p>
 
             <?php if (!empty($successMessage)): ?>
                 <div style="background: rgba(45, 106, 79, 0.1); color: var(--primary-color); padding: 1rem; border-radius: 10px; margin-bottom: 2rem; text-align: center; border: 1px solid var(--primary-color);">
@@ -22,7 +22,7 @@
                 </div>
             <?php endif; ?>
 
-            <form action="/contact" method="post" style="display: grid; gap: 1.5rem;">
+            <form action="/enquiry" method="post" style="display: grid; gap: 1.5rem;">
                 <div style="text-align: left;">
                     <label for="name" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Full Name</label>
                     <input type="text" id="name" name="name" required style="width: 100%; padding: 1rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.8); font-family: var(--font-body);">
@@ -44,8 +44,12 @@
                     <textarea id="message" name="message" rows="5" required style="width: 100%; padding: 1rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.8); font-family: var(--font-body);"></textarea>
                 </div>
 
-                <button type="submit" class="btn-primary" style="font-size: 1.1rem; padding: 1rem; margin-top: 1rem; width: 100%;">Send Message</button>
+                <button type="submit" class="btn-primary" style="font-size: 1.1rem; padding: 1rem; margin-top: 1rem; width: 100%;">Register Enquiry</button>
             </form>
+
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <a href="/contact" class="btn-primary" style="display: inline-block; text-decoration: none;">Need to book directly? Go to Paid Appointment</a>
+            </div>
 
             <div style="margin-top: 3rem; text-align: center; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 2rem;">
                 <h3 style="font-size: 1.2rem; margin-bottom: 1rem;">Or Contact Us Directly</h3>

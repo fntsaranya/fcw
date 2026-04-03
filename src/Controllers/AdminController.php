@@ -6,6 +6,7 @@ namespace FCW\Controllers;
 use FCW\Core\Flash;
 use FCW\Core\View;
 use FCW\Repositories\AssessmentRepository;
+use FCW\Repositories\AppointmentRepository;
 use FCW\Repositories\BlogRepository;
 use FCW\Repositories\ContactRepository;
 use FCW\Services\AdminAuth;
@@ -19,20 +20,22 @@ final class AdminController
     public function __construct(
         private readonly ContactRepository $contacts = new ContactRepository(),
         private readonly AssessmentRepository $assessments = new AssessmentRepository(),
-        private readonly BlogRepository $blogs = new BlogRepository()
+        private readonly BlogRepository $blogs = new BlogRepository(),
+        private readonly AppointmentRepository $appointments = new AppointmentRepository()
     ) {
     }
 
     public function dashboard(): void
     {
         $activeTab = (string) ($_GET['tab'] ?? 'contacts');
-        if (!in_array($activeTab, ['contacts', 'assessments', 'blogs'], true)) {
+        if (!in_array($activeTab, ['contacts', 'assessments', 'blogs', 'appointments'], true)) {
             $activeTab = 'contacts';
         }
 
         $contacts = [];
         $assessments = [];
         $blogs = [];
+        $appointments = [];
         $failedSections = [];
 
         try {
@@ -56,6 +59,13 @@ final class AdminController
             error_log('Admin blogs load error: ' . $exception->getMessage());
         }
 
+        try {
+            $appointments = $this->appointments->all();
+        } catch (Throwable $exception) {
+            $failedSections[] = 'appointments';
+            error_log('Admin appointments load error: ' . $exception->getMessage());
+        }
+
         $inlineErrorMessage = null;
         if (!empty($failedSections)) {
             $inlineErrorMessage = sprintf(
@@ -70,9 +80,11 @@ final class AdminController
             'contacts' => $contacts,
             'assessments' => $assessments,
             'blogs' => $blogs,
+            'appointments' => $appointments,
             'totalContacts' => count($contacts),
             'totalAssessments' => count($assessments),
             'totalBlogs' => count($blogs),
+            'totalAppointments' => count($appointments),
             'booleanFields' => AssessmentCatalog::booleanFields(),
             'fieldLabels' => AssessmentCatalog::fieldLabels(),
             'inlineErrorMessage' => $inlineErrorMessage,
@@ -297,6 +309,64 @@ final class AdminController
         }
 
         View::redirect('/admin/contacts?tab=blogs');
+    }
+
+    public function verifyAppointment(int $appointmentId): void
+    {
+        if (!$this->isPinValid((string) ($_POST['pin'] ?? ''))) {
+            Flash::add('error', 'Invalid Admin PIN');
+            View::redirect('/admin/contacts?tab=appointments');
+        }
+
+        $note = trim((string) ($_POST['note'] ?? ''));
+
+        try {
+            $this->appointments->markVerified($appointmentId, $note === '' ? null : $note);
+            Flash::add('success', 'Appointment payment marked as verified.');
+        } catch (Throwable $exception) {
+            error_log('Verify appointment error: ' . $exception->getMessage());
+            Flash::add('error', 'Unable to verify appointment payment at the moment.');
+        }
+
+        View::redirect('/admin/contacts?tab=appointments');
+    }
+
+    public function rejectAppointment(int $appointmentId): void
+    {
+        if (!$this->isPinValid((string) ($_POST['pin'] ?? ''))) {
+            Flash::add('error', 'Invalid Admin PIN');
+            View::redirect('/admin/contacts?tab=appointments');
+        }
+
+        $note = trim((string) ($_POST['note'] ?? ''));
+
+        try {
+            $this->appointments->markRejected($appointmentId, $note === '' ? null : $note);
+            Flash::add('success', 'Appointment payment marked as rejected.');
+        } catch (Throwable $exception) {
+            error_log('Reject appointment error: ' . $exception->getMessage());
+            Flash::add('error', 'Unable to reject appointment payment at the moment.');
+        }
+
+        View::redirect('/admin/contacts?tab=appointments');
+    }
+
+    public function deleteAppointment(int $appointmentId): void
+    {
+        if (!$this->isPinValid((string) ($_POST['pin'] ?? ''))) {
+            Flash::add('error', 'Invalid Admin PIN');
+            View::redirect('/admin/contacts?tab=appointments');
+        }
+
+        try {
+            $this->appointments->delete($appointmentId);
+            Flash::add('success', 'Appointment record deleted successfully.');
+        } catch (Throwable $exception) {
+            error_log('Delete appointment error: ' . $exception->getMessage());
+            Flash::add('error', 'Unable to delete appointment record at the moment.');
+        }
+
+        View::redirect('/admin/contacts?tab=appointments');
     }
 
     private function normalizeImageUrl(string $imageUrlRaw): ?string

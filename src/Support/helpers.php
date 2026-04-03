@@ -47,7 +47,14 @@ if (!function_exists('e')) {
 if (!function_exists('asset')) {
     function asset(string $path): string
     {
-        return '/static/' . ltrim($path, '/');
+        $assetPath = '/static/' . ltrim($path, '/');
+        $absolutePath = defined('BASE_PATH') ? BASE_PATH . $assetPath : '';
+
+        if ($absolutePath !== '' && is_file($absolutePath)) {
+            return $assetPath . '?v=' . (string) filemtime($absolutePath);
+        }
+
+        return $assetPath;
     }
 }
 

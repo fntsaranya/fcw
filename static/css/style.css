@@ -85,9 +85,11 @@ h2 {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 1.25rem;
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1.5rem;
+    position: relative;
 }
 
 .logo {
@@ -98,6 +100,7 @@ h2 {
     font-weight: 700;
     font-size: 1.2rem;
     color: var(--primary-color);
+    flex-shrink: 0;
 }
 
 .logo img {
@@ -108,8 +111,13 @@ h2 {
 .nav-links {
     display: flex;
     list-style: none;
-    gap: 2rem;
+    gap: clamp(1rem, 1.7vw, 2rem);
     align-items: center;
+    justify-content: center;
+    flex: 1 1 auto;
+    margin-left: 1.25rem;
+    margin-right: 0;
+    flex-wrap: nowrap;
 }
 
 .hamburger {
@@ -117,6 +125,13 @@ h2 {
     color: var(--primary-color);
     font-size: 1.4rem;
     cursor: pointer;
+    flex-shrink: 0;
+    width: 36px;
+    text-align: right;
+    background: transparent;
+    border: none;
+    padding: 0;
+    line-height: 1;
 }
 
 .nav-links a {
@@ -124,11 +139,21 @@ h2 {
     color: var(--text-dark);
     font-weight: 500;
     transition: color 0.3s;
+    white-space: nowrap;
+    display: block;
 }
 
 .nav-links a.active,
 .nav-links a:hover {
     color: var(--accent-color);
+}
+
+.nav-links .btn-primary {
+    padding: 0.74rem 1.25rem;
+}
+
+.nav-links .btn-primary:hover {
+    transform: none;
 }
 
 .btn-primary {
@@ -201,30 +226,91 @@ footer {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .navbar .container {
-        position: relative;
+/* Desktop and large tablets: always show links, never show hamburger */
+@media (min-width: 701px) {
+    .nav-links {
+        display: flex !important;
+        position: static;
+        width: auto;
+        padding: 0;
+        border: 0;
+        box-shadow: none;
+        background: transparent;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .hamburger {
+        display: none !important;
+    }
+}
+
+/* Medium desktops: tighten spacing to avoid overlap */
+@media (max-width: 1240px) and (min-width: 701px) {
+    .logo {
+        font-size: 1.08rem;
+        max-width: 280px;
     }
 
     .nav-links {
-        display: none;
+        gap: 0.95rem;
+        font-size: 0.97rem;
+    }
+
+    .btn-primary {
+        padding: 0.72rem 1.15rem;
+    }
+}
+
+@media (max-width: 960px) and (min-width: 701px) {
+    .navbar .container {
+        gap: 0.8rem;
+    }
+
+    .logo {
+        font-size: 1rem;
+        gap: 8px;
+    }
+
+    .logo img {
+        height: 42px;
+    }
+
+    .nav-links {
+        gap: 0.7rem;
+        font-size: 0.93rem;
+        margin-left: 0.8rem;
+    }
+
+    .nav-links .btn-primary {
+        padding: 0.58rem 0.9rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+    .nav-links {
+        display: none !important;
         flex-direction: column;
         align-items: flex-start;
         gap: 0.8rem;
         position: absolute;
         top: 72px;
-        right: 0;
-        width: min(360px, calc(100vw - 2rem));
+        right: 1rem;
+        left: 1rem;
+        width: auto;
         background: rgba(255, 255, 255, 0.96);
         border: 1px solid rgba(0, 0, 0, 0.08);
         border-radius: 14px;
         padding: 1rem;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        z-index: 1001;
     }
 
     .nav-links.mobile-open {
-        display: flex;
+        display: flex !important;
     }
 
     .nav-links li {
@@ -236,8 +322,21 @@ footer {
         width: 100%;
     }
 
+    .nav-links .btn-primary {
+        width: 100%;
+        text-align: center;
+        padding: 0.85rem 1rem;
+    }
+
     .hamburger {
-        display: block;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .logo {
+        max-width: calc(100% - 52px);
+        font-size: 1.05rem;
     }
 
     h1 {

@@ -17,7 +17,7 @@ final class ContactController
     public function form(?string $successMessage = null, ?string $errorMessage = null, ?string $warningMessage = null): void
     {
         View::render('pages/contact', [
-            'activePage' => 'contact',
+            'activePage' => 'enquiry',
             'successMessage' => $successMessage,
             'errorMessage' => $errorMessage,
             'warningMessage' => $warningMessage,

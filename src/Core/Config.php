@@ -54,6 +54,21 @@ final class Config
         ];
     }
 
+    public static function appointmentPayment(): array
+    {
+        return [
+            'fee_inr' => (string) env('APPOINTMENT_FEE_INR', '499.00'),
+            'currency' => 'INR',
+            'upi_id' => (string) env('UPI_ID', ''),
+            'upi_payee_name' => (string) env('UPI_PAYEE_NAME', self::appName()),
+            'upi_note_prefix' => (string) env('UPI_NOTE_PREFIX', 'FCW Appointment'),
+            'gpay_logo_image' => (string) env('GPAY_LOGO_IMAGE', '/static/images/gpay-logo.png'),
+            'phonepe_logo_image' => (string) env('PHONEPE_LOGO_IMAGE', '/static/images/phonepe-logo.png'),
+            'gpay_qr_image' => (string) env('GPAY_QR_IMAGE', '/static/images/gpay-qr.png'),
+            'phonepe_qr_image' => (string) env('PHONEPE_QR_IMAGE', '/static/images/phonepe-qr.png'),
+        ];
+    }
+
     public static function dbPoolSize(): int
     {
         return env_int('DB_POOL_SIZE', 5);

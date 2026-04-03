@@ -2,6 +2,7 @@
 $contacts = $contacts ?? [];
 $assessments = $assessments ?? [];
 $blogs = $blogs ?? [];
+$appointments = $appointments ?? [];
 $booleanFields = $booleanFields ?? [];
 $fieldLabels = $fieldLabels ?? [];
 $activeTab = $activeTab ?? 'contacts';
@@ -17,6 +18,9 @@ $activeTab = $activeTab ?? 'contacts';
             </button>
             <button onclick="switchTab('blogs')" id="tab-blogs" class="admin-nav-tab" style="padding: 0.8rem 2rem; border: none; cursor: pointer; border-radius: 40px; transition: all 0.3s; display: flex; align-items: center; gap: 0.8rem;">
                 <i class="fas fa-edit" style="font-size: 1.1rem;"></i> Blogs
+            </button>
+            <button onclick="switchTab('appointments')" id="tab-appointments" class="admin-nav-tab" style="padding: 0.8rem 2rem; border: none; cursor: pointer; border-radius: 40px; transition: all 0.3s; display: flex; align-items: center; gap: 0.8rem;">
+                <i class="fas fa-indian-rupee-sign" style="font-size: 1.1rem;"></i> Appointments
             </button>
         </div>
 
@@ -71,6 +75,10 @@ $activeTab = $activeTab ?? 'contacts';
             <div class="glass-card" style="text-align: center; padding: 2rem;">
                 <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-color); font-weight: 700; margin-bottom: 0.5rem;">Total Blogs in DB</div>
                 <div style="font-size: 2.5rem; color: var(--primary-color); font-weight: 800; line-height: 1;"><?= (int) ($totalBlogs ?? 0) ?></div>
+            </div>
+            <div class="glass-card" style="text-align: center; padding: 2rem;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-color); font-weight: 700; margin-bottom: 0.5rem;">Total Appointments in DB</div>
+                <div style="font-size: 2.5rem; color: var(--primary-color); font-weight: 800; line-height: 1;"><?= (int) ($totalAppointments ?? count($appointments)) ?></div>
             </div>
         </div>
 
@@ -218,6 +226,79 @@ $activeTab = $activeTab ?? 'contacts';
                 <?php endif; ?>
             </div>
         </div>
+
+        <div id="appointments-content" style="display:none;">
+            <div class="glass-card" style="margin-bottom:1rem; background:white;">
+                <p style="margin:0; color:#475569;">Appointments booked through paid flow appear here. Verify or reject payment after checking UPI transaction reference.</p>
+            </div>
+            <div class="glass-card" style="overflow-x: auto; padding: 0.5rem; background: white;">
+                <?php if (empty($appointments)): ?>
+                    <div style="text-align:center; padding:3rem; color:#64748b;">No appointment bookings yet.</div>
+                <?php else: ?>
+                    <table style="width:100%; border-collapse: collapse; font-size:0.93rem; min-width:1080px;">
+                        <thead>
+                            <tr style="background:#0f766e; color:white;">
+                                <th style="padding:0.9rem; text-align:left;">ID</th>
+                                <th style="padding:0.9rem; text-align:left;">Reference</th>
+                                <th style="padding:0.9rem; text-align:left;">Name</th>
+                                <th style="padding:0.9rem; text-align:left;">Contact</th>
+                                <th style="padding:0.9rem; text-align:left;">Preferred Slot</th>
+                                <th style="padding:0.9rem; text-align:left;">Amount</th>
+                                <th style="padding:0.9rem; text-align:left;">UPI Method</th>
+                                <th style="padding:0.9rem; text-align:left;">Txn Ref</th>
+                                <th style="padding:0.9rem; text-align:left;">Status</th>
+                                <th style="padding:0.9rem; text-align:left;">Acknowledged</th>
+                                <th style="padding:0.9rem; text-align:center;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($appointments as $appointment): ?>
+                                <?php
+                                    $statusKey = (string) ($appointment['payment_status'] ?? 'pending_payment');
+                                    $statusMap = [
+                                        'pending_payment' => ['label' => 'Pending', 'bg' => '#fef3c7', 'color' => '#92400e'],
+                                        'payment_submitted' => ['label' => 'Submitted', 'bg' => '#dbeafe', 'color' => '#1d4ed8'],
+                                        'payment_verified' => ['label' => 'Verified', 'bg' => '#dcfce7', 'color' => '#166534'],
+                                        'payment_rejected' => ['label' => 'Rejected', 'bg' => '#fee2e2', 'color' => '#b91c1c'],
+                                    ];
+                                    $status = $statusMap[$statusKey] ?? $statusMap['pending_payment'];
+                                    $slotDate = trim((string) ($appointment['preferred_date'] ?? ''));
+                                    $slotTime = trim((string) ($appointment['preferred_time'] ?? ''));
+                                    $slotText = $slotDate !== '' ? $slotDate . ($slotTime !== '' ? ' ' . $slotTime : '') : '-';
+                                    $ackText = !empty($appointment['payment_acknowledged_at']) ? date('M d, Y H:i', strtotime((string) $appointment['payment_acknowledged_at'])) : '-';
+                                    $channelKey = strtolower(trim((string) ($appointment['payment_channel'] ?? '')));
+                                    $channelLabel = match ($channelKey) {
+                                        'gpay' => 'Google Pay',
+                                        'phonepe' => 'PhonePe',
+                                        default => ($channelKey !== '' ? ucfirst($channelKey) : '-'),
+                                    };
+                                ?>
+                                <tr style="border-bottom: 1px solid #f1f5f9; vertical-align: top;">
+                                    <td style="padding:0.85rem; font-weight:700; color:var(--primary-color);">#<?= (int) ($appointment['id'] ?? 0) ?></td>
+                                    <td style="padding:0.85rem; font-weight:700;"><?= e((string) ($appointment['booking_reference'] ?? '-')) ?></td>
+                                    <td style="padding:0.85rem;"><?= e((string) ($appointment['full_name'] ?? '-')) ?></td>
+                                    <td style="padding:0.85rem;">
+                                        <div><?= e((string) ($appointment['email'] ?? '-')) ?></div>
+                                        <div style="font-size:0.88rem; color:#6b7280;"><?= e((string) ($appointment['phone'] ?? '-')) ?></div>
+                                    </td>
+                                    <td style="padding:0.85rem;"><?= e($slotText) ?></td>
+                                    <td style="padding:0.85rem; font-weight:600;"><?= e((string) ($appointment['currency'] ?? 'INR')) ?> <?= e((string) ($appointment['amount_inr'] ?? '0')) ?></td>
+                                    <td style="padding:0.85rem;"><?= e($channelLabel) ?></td>
+                                    <td style="padding:0.85rem;"><?= e((string) (($appointment['upi_transaction_ref'] ?? '') !== '' ? $appointment['upi_transaction_ref'] : '-')) ?></td>
+                                    <td style="padding:0.85rem;"><span style="display:inline-block; padding:0.28rem 0.65rem; border-radius:999px; background:<?= e($status['bg']) ?>; color:<?= e($status['color']) ?>; font-weight:700;"><?= e($status['label']) ?></span></td>
+                                    <td style="padding:0.85rem;"><?= e($ackText) ?></td>
+                                    <td style="padding:0.85rem; text-align:center; white-space:nowrap;">
+                                        <button class="verify-appointment-btn" data-id="<?= (int) ($appointment['id'] ?? 0) ?>" style="padding:0.45rem 0.65rem; margin-right:0.3rem; background:#dcfce7; border:1px solid #86efac; border-radius:6px; color:#166534; cursor:pointer;">Verify</button>
+                                        <button class="reject-appointment-btn" data-id="<?= (int) ($appointment['id'] ?? 0) ?>" style="padding:0.45rem 0.65rem; margin-right:0.3rem; background:#fef3c7; border:1px solid #fcd34d; border-radius:6px; color:#92400e; cursor:pointer;">Reject</button>
+                                        <button class="delete-appointment-btn" data-id="<?= (int) ($appointment['id'] ?? 0) ?>" style="padding:0.45rem 0.65rem; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; color:#b91c1c; cursor:pointer;">Delete</button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+        </div>
     </div>
 </section>
 
@@ -326,6 +407,34 @@ $activeTab = $activeTab ?? 'contacts';
     </div>
 </div>
 
+<div id="appointmentStatusModal" style="display:none; position:fixed; inset:0; background: rgba(0,0,0,0.65); z-index:1000; align-items:center; justify-content:center;">
+    <div class="glass-card" style="background:white; width:92%; max-width:520px;">
+        <h3 id="appointmentStatusTitle" style="margin-bottom:1rem;">Update Appointment Payment</h3>
+        <form id="appointmentStatusForm" method="post" style="display:grid; gap:0.9rem;">
+            <textarea name="note" rows="4" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #ccc;" placeholder="Verification note (optional)"></textarea>
+            <input type="password" name="pin" required style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #ccc;" placeholder="Admin PIN">
+            <div style="display:flex; gap:0.7rem;">
+                <button type="submit" id="appointmentStatusSubmit" class="btn-primary" style="flex:1;">Submit</button>
+                <button type="button" onclick="closeAppointmentStatusModal()" style="flex:1; border:none; border-radius:8px; background:#6b7280; color:white; cursor:pointer;">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="deleteAppointmentModal" style="display:none; position:fixed; inset:0; background: rgba(0,0,0,0.65); z-index:1000; align-items:center; justify-content:center;">
+    <div class="glass-card" style="background:white; width:90%; max-width:420px;">
+        <h3>Delete Appointment</h3>
+        <p style="margin-bottom:1rem;">Confirm deletion by entering Admin PIN.</p>
+        <form id="deleteAppointmentForm" method="post" style="display:grid; gap:0.9rem;">
+            <input type="password" name="pin" required style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #ccc;" placeholder="Admin PIN">
+            <div style="display:flex; gap:0.7rem;">
+                <button type="submit" style="flex:1; border:none; border-radius:8px; background:#ef4444; color:white; padding:0.8rem; cursor:pointer;">Delete</button>
+                <button type="button" onclick="closeDeleteAppointmentModal()" style="flex:1; border:none; border-radius:8px; background:#6b7280; color:white; cursor:pointer;">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <style>
     .badge {
         padding: 0.3rem 0.8rem;
@@ -343,7 +452,7 @@ $activeTab = $activeTab ?? 'contacts';
 <script>
     const booleanFields = <?= json_encode(array_values($booleanFields)) ?>;
     const activeTab = <?= json_encode($activeTab) ?>;
-    const tabNames = ['contacts', 'assessments', 'blogs'];
+    const tabNames = ['contacts', 'assessments', 'blogs', 'appointments'];
 
     function styleTab(tabName, isActive) {
         const tab = document.getElementById('tab-' + tabName);
@@ -469,6 +578,47 @@ $activeTab = $activeTab ?? 'contacts';
         });
     });
 
+    function openAppointmentStatusModal(id, action) {
+        const form = document.getElementById('appointmentStatusForm');
+        const title = document.getElementById('appointmentStatusTitle');
+        const submit = document.getElementById('appointmentStatusSubmit');
+
+        if (!form || !title || !submit) {
+            return;
+        }
+
+        if (action === 'verify') {
+            form.action = '/admin/appointments/verify/' + id;
+            title.textContent = 'Verify Appointment Payment';
+            submit.textContent = 'Mark Verified';
+        } else {
+            form.action = '/admin/appointments/reject/' + id;
+            title.textContent = 'Reject Appointment Payment';
+            submit.textContent = 'Mark Rejected';
+        }
+
+        document.getElementById('appointmentStatusModal').style.display = 'flex';
+    }
+
+    document.querySelectorAll('.verify-appointment-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+            openAppointmentStatusModal(button.getAttribute('data-id'), 'verify');
+        });
+    });
+
+    document.querySelectorAll('.reject-appointment-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+            openAppointmentStatusModal(button.getAttribute('data-id'), 'reject');
+        });
+    });
+
+    document.querySelectorAll('.delete-appointment-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+            document.getElementById('deleteAppointmentForm').action = '/admin/appointments/delete/' + button.getAttribute('data-id');
+            document.getElementById('deleteAppointmentModal').style.display = 'flex';
+        });
+    });
+
     function closeEditContactModal() {
         document.getElementById('editContactModal').style.display = 'none';
     }
@@ -493,8 +643,16 @@ $activeTab = $activeTab ?? 'contacts';
         document.getElementById('deleteBlogModal').style.display = 'none';
     }
 
+    function closeAppointmentStatusModal() {
+        document.getElementById('appointmentStatusModal').style.display = 'none';
+    }
+
+    function closeDeleteAppointmentModal() {
+        document.getElementById('deleteAppointmentModal').style.display = 'none';
+    }
+
     window.addEventListener('click', function (event) {
-        ['editContactModal', 'deleteContactModal', 'editAssessmentModal', 'deleteAssessmentModal', 'editBlogModal', 'deleteBlogModal'].forEach(function (id) {
+        ['editContactModal', 'deleteContactModal', 'editAssessmentModal', 'deleteAssessmentModal', 'editBlogModal', 'deleteBlogModal', 'appointmentStatusModal', 'deleteAppointmentModal'].forEach(function (id) {
             const modal = document.getElementById(id);
             if (event.target === modal) {
                 modal.style.display = 'none';

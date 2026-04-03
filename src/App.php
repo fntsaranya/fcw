@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FCW;
 
 use FCW\Controllers\AdminController;
+use FCW\Controllers\AppointmentController;
 use FCW\Controllers\AssessmentController;
 use FCW\Controllers\BlogController;
 use FCW\Controllers\ContactController;
@@ -30,6 +31,7 @@ final class App
 
         $pages = new PageController();
         $contact = new ContactController();
+        $appointment = new AppointmentController();
         $blog = new BlogController();
         $assessment = new AssessmentController();
         $admin = new AdminController();
@@ -56,12 +58,37 @@ final class App
         }
 
         if ($method === 'GET' && $path === '/contact') {
-            $contact->form();
+            $appointment->form();
             return;
         }
 
         if ($method === 'POST' && $path === '/contact') {
+            $appointment->create();
+            return;
+        }
+
+        if ($method === 'GET' && $path === '/enquiry') {
+            $contact->form();
+            return;
+        }
+
+        if ($method === 'POST' && $path === '/enquiry') {
             $contact->submit();
+            return;
+        }
+
+        if ($method === 'GET' && $path === '/appointment/payment') {
+            $appointment->paymentPage();
+            return;
+        }
+
+        if ($method === 'POST' && $path === '/api/payments/acknowledge') {
+            $appointment->acknowledgePaymentApi();
+            return;
+        }
+
+        if ($method === 'GET' && preg_match('#^/api/payments/status/([A-Za-z0-9_-]+)$#', $path, $matches) === 1) {
+            $appointment->paymentStatusApi((string) $matches[1]);
             return;
         }
 
@@ -142,6 +169,21 @@ final class App
 
         if ($method === 'POST' && preg_match('#^/admin/assessments/delete/(\d+)$#', $path, $matches) === 1) {
             $admin->deleteAssessment((int) $matches[1]);
+            return;
+        }
+
+        if ($method === 'POST' && preg_match('#^/admin/appointments/verify/(\d+)$#', $path, $matches) === 1) {
+            $admin->verifyAppointment((int) $matches[1]);
+            return;
+        }
+
+        if ($method === 'POST' && preg_match('#^/admin/appointments/reject/(\d+)$#', $path, $matches) === 1) {
+            $admin->rejectAppointment((int) $matches[1]);
+            return;
+        }
+
+        if ($method === 'POST' && preg_match('#^/admin/appointments/delete/(\d+)$#', $path, $matches) === 1) {
+            $admin->deleteAppointment((int) $matches[1]);
             return;
         }
 
