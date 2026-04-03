@@ -60,4 +60,26 @@ final class BlogRepository
 
         return (int) $pdo->lastInsertId();
     }
+
+    public function update(int $id, string $title, string $content, ?string $imageUrl): bool
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE blog_posts
+             SET title = :title, content = :content, image_url = :image_url
+             WHERE id = :id'
+        );
+
+        return $stmt->execute([
+            ':id' => $id,
+            ':title' => $title,
+            ':content' => $content,
+            ':image_url' => $imageUrl,
+        ]);
+    }
+
+    public function delete(int $id): bool
+    {
+        $stmt = Database::connection()->prepare('DELETE FROM blog_posts WHERE id = :id');
+        return $stmt->execute([':id' => $id]);
+    }
 }

@@ -112,6 +112,13 @@ h2 {
     align-items: center;
 }
 
+.hamburger {
+    display: none;
+    color: var(--primary-color);
+    font-size: 1.4rem;
+    cursor: pointer;
+}
+
 .nav-links a {
     text-decoration: none;
     color: var(--text-dark);
@@ -196,9 +203,41 @@ footer {
 
 /* Responsive */
 @media (max-width: 768px) {
+    .navbar .container {
+        position: relative;
+    }
+
     .nav-links {
         display: none;
-        /* Mobile menu to be implemented */
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.8rem;
+        position: absolute;
+        top: 72px;
+        right: 0;
+        width: min(360px, calc(100vw - 2rem));
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 14px;
+        padding: 1rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .nav-links.mobile-open {
+        display: flex;
+    }
+
+    .nav-links li {
+        width: 100%;
+    }
+
+    .nav-links li a {
+        display: block;
+        width: 100%;
+    }
+
+    .hamburger {
+        display: block;
     }
 
     h1 {

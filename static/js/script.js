@@ -2,19 +2,47 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mobile Navigation Toggle
     const hamburger = document.querySelector('.hamburger');
     const navLinks = document.querySelector('.nav-links');
+    const mobileMedia = window.matchMedia('(max-width: 768px)');
 
-    if (hamburger) {
-        hamburger.addEventListener('click', () => {
-            navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
-            if (navLinks.style.display === 'flex') {
-                navLinks.style.flexDirection = 'column';
-                navLinks.style.position = 'absolute';
-                navLinks.style.top = '70px';
-                navLinks.style.right = '0';
-                navLinks.style.width = '100%';
-                navLinks.style.background = 'rgba(255, 255, 255, 0.95)';
-                navLinks.style.padding = '1rem';
-                navLinks.style.boxShadow = '0 5px 10px rgba(0,0,0,0.1)';
+    if (hamburger && navLinks) {
+        const closeMobileMenu = () => {
+            navLinks.classList.remove('mobile-open');
+        };
+
+        hamburger.addEventListener('click', (event) => {
+            if (!mobileMedia.matches) {
+                return;
+            }
+            event.stopPropagation();
+            navLinks.classList.toggle('mobile-open');
+        });
+
+        navLinks.querySelectorAll('a').forEach((link) => {
+            link.addEventListener('click', () => {
+                if (mobileMedia.matches) {
+                    closeMobileMenu();
+                }
+            });
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!mobileMedia.matches) {
+                return;
+            }
+
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+
+            if (!navLinks.contains(target) && !hamburger.contains(target)) {
+                closeMobileMenu();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (!mobileMedia.matches) {
+                closeMobileMenu();
             }
         });
     }

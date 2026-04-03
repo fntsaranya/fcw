@@ -73,49 +73,4 @@ final class BlogController
 
         View::json(['detail' => 'Invalid PIN'], 401);
     }
-
-    public function adminForm(?string $errorMessage = null): void
-    {
-        View::render('pages/admin_blog', [
-            'activePage' => '',
-            'errorMessage' => $errorMessage,
-        ]);
-    }
-
-    public function create(): void
-    {
-        $title = trim((string) ($_POST['title'] ?? ''));
-        $content = trim((string) ($_POST['content'] ?? ''));
-        $imageUrlRaw = trim((string) ($_POST['image_url'] ?? ''));
-        $pin = trim((string) ($_POST['pin'] ?? ''));
-
-        if (!AdminAuth::verifyPin($pin)) {
-            $this->adminForm('Invalid Admin PIN');
-            return;
-        }
-
-        if ($title === '' || $content === '') {
-            $this->adminForm('Title and content are required.');
-            return;
-        }
-
-        $imageUrl = null;
-        if ($imageUrlRaw !== '') {
-            if (filter_var($imageUrlRaw, FILTER_VALIDATE_URL) === false) {
-                $this->adminForm('Image URL must be a valid URL.');
-                return;
-            }
-            $imageUrl = $imageUrlRaw;
-        }
-
-        try {
-            $this->blogs->create($title, $content, $imageUrl);
-        } catch (Throwable $exception) {
-            error_log('Blog create DB error: ' . $exception->getMessage());
-            $this->adminForm('Unable to create blog post right now. Please try again.');
-            return;
-        }
-
-        $this->list('Blog post created successfully!');
-    }
 }

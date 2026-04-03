@@ -6,44 +6,62 @@ namespace FCW\Controllers;
 use FCW\Core\Flash;
 use FCW\Core\View;
 use FCW\Repositories\AssessmentRepository;
+use FCW\Repositories\BlogRepository;
 use FCW\Repositories\ContactRepository;
 use FCW\Services\AdminAuth;
 use FCW\Services\AssessmentCatalog;
 use FCW\Services\AssessmentScoringService;
+use InvalidArgumentException;
 use Throwable;
 
 final class AdminController
 {
     public function __construct(
         private readonly ContactRepository $contacts = new ContactRepository(),
-        private readonly AssessmentRepository $assessments = new AssessmentRepository()
+        private readonly AssessmentRepository $assessments = new AssessmentRepository(),
+        private readonly BlogRepository $blogs = new BlogRepository()
     ) {
     }
 
     public function dashboard(): void
     {
         $activeTab = (string) ($_GET['tab'] ?? 'contacts');
-        if (!in_array($activeTab, ['contacts', 'assessments'], true)) {
+        if (!in_array($activeTab, ['contacts', 'assessments', 'blogs'], true)) {
             $activeTab = 'contacts';
         }
 
+        $contacts = [];
+        $assessments = [];
+        $blogs = [];
+        $failedSections = [];
+
         try {
             $contacts = $this->contacts->all();
+        } catch (Throwable $exception) {
+            $failedSections[] = 'contacts';
+            error_log('Admin contacts load error: ' . $exception->getMessage());
+        }
+
+        try {
             $assessments = $this->assessments->all();
         } catch (Throwable $exception) {
-            error_log('Admin dashboard DB error: ' . $exception->getMessage());
-            View::render('pages/admin_contacts', [
-                'activePage' => '',
-                'activeTab' => $activeTab,
-                'contacts' => [],
-                'assessments' => [],
-                'totalContacts' => 0,
-                'totalAssessments' => 0,
-                'booleanFields' => AssessmentCatalog::booleanFields(),
-                'fieldLabels' => AssessmentCatalog::fieldLabels(),
-                'inlineErrorMessage' => 'Failed to load admin data. Please try again.',
-            ]);
-            return;
+            $failedSections[] = 'assessments';
+            error_log('Admin assessments load error: ' . $exception->getMessage());
+        }
+
+        try {
+            $blogs = $this->blogs->all();
+        } catch (Throwable $exception) {
+            $failedSections[] = 'blogs';
+            error_log('Admin blogs load error: ' . $exception->getMessage());
+        }
+
+        $inlineErrorMessage = null;
+        if (!empty($failedSections)) {
+            $inlineErrorMessage = sprintf(
+                'Some admin sections failed to load (%s). Please check database schema and retry.',
+                implode(', ', $failedSections)
+            );
         }
 
         View::render('pages/admin_contacts', [
@@ -51,11 +69,13 @@ final class AdminController
             'activeTab' => $activeTab,
             'contacts' => $contacts,
             'assessments' => $assessments,
+            'blogs' => $blogs,
             'totalContacts' => count($contacts),
             'totalAssessments' => count($assessments),
+            'totalBlogs' => count($blogs),
             'booleanFields' => AssessmentCatalog::booleanFields(),
             'fieldLabels' => AssessmentCatalog::fieldLabels(),
-            'inlineErrorMessage' => null,
+            'inlineErrorMessage' => $inlineErrorMessage,
         ]);
     }
 
@@ -201,6 +221,96 @@ final class AdminController
         }
 
         View::redirect('/admin/contacts?tab=assessments');
+    }
+
+    public function addBlog(): void
+    {
+        if (!$this->isPinValid((string) ($_POST['pin'] ?? ''))) {
+            Flash::add('error', 'Invalid Admin PIN');
+            View::redirect('/admin/contacts?tab=blogs');
+        }
+
+        $title = trim((string) ($_POST['title'] ?? ''));
+        $content = trim((string) ($_POST['content'] ?? ''));
+
+        if ($title === '' || $content === '') {
+            Flash::add('error', 'Blog title and content are required.');
+            View::redirect('/admin/contacts?tab=blogs');
+        }
+
+        try {
+            $imageUrl = $this->normalizeImageUrl((string) ($_POST['image_url'] ?? ''));
+            $this->blogs->create($title, $content, $imageUrl);
+            Flash::add('success', 'Blog post added successfully.');
+        } catch (InvalidArgumentException $exception) {
+            Flash::add('error', $exception->getMessage());
+        } catch (Throwable $exception) {
+            error_log('Add blog error: ' . $exception->getMessage());
+            Flash::add('error', 'Unable to add blog post at the moment.');
+        }
+
+        View::redirect('/admin/contacts?tab=blogs');
+    }
+
+    public function editBlog(int $blogId): void
+    {
+        if (!$this->isPinValid((string) ($_POST['pin'] ?? ''))) {
+            Flash::add('error', 'Invalid Admin PIN');
+            View::redirect('/admin/contacts?tab=blogs');
+        }
+
+        $title = trim((string) ($_POST['title'] ?? ''));
+        $content = trim((string) ($_POST['content'] ?? ''));
+
+        if ($title === '' || $content === '') {
+            Flash::add('error', 'Blog title and content are required.');
+            View::redirect('/admin/contacts?tab=blogs');
+        }
+
+        try {
+            $imageUrl = $this->normalizeImageUrl((string) ($_POST['image_url'] ?? ''));
+            $this->blogs->update($blogId, $title, $content, $imageUrl);
+            Flash::add('success', 'Blog post updated successfully.');
+        } catch (InvalidArgumentException $exception) {
+            Flash::add('error', $exception->getMessage());
+        } catch (Throwable $exception) {
+            error_log('Edit blog error: ' . $exception->getMessage());
+            Flash::add('error', 'Unable to update blog post at the moment.');
+        }
+
+        View::redirect('/admin/contacts?tab=blogs');
+    }
+
+    public function deleteBlog(int $blogId): void
+    {
+        if (!$this->isPinValid((string) ($_POST['pin'] ?? ''))) {
+            Flash::add('error', 'Invalid Admin PIN');
+            View::redirect('/admin/contacts?tab=blogs');
+        }
+
+        try {
+            $this->blogs->delete($blogId);
+            Flash::add('success', 'Blog post deleted successfully.');
+        } catch (Throwable $exception) {
+            error_log('Delete blog error: ' . $exception->getMessage());
+            Flash::add('error', 'Unable to delete blog post at the moment.');
+        }
+
+        View::redirect('/admin/contacts?tab=blogs');
+    }
+
+    private function normalizeImageUrl(string $imageUrlRaw): ?string
+    {
+        $imageUrl = trim($imageUrlRaw);
+        if ($imageUrl === '') {
+            return null;
+        }
+
+        if (filter_var($imageUrl, FILTER_VALIDATE_URL) === false) {
+            throw new InvalidArgumentException('Image URL must be a valid URL.');
+        }
+
+        return $imageUrl;
     }
 
     private function isPinValid(string $pin): bool

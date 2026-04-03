@@ -81,12 +81,27 @@ final class App
         }
 
         if ($method === 'GET' && $path === '/admin/blog') {
-            $blog->adminForm();
+            View::redirect('/admin/contacts?tab=blogs');
             return;
         }
 
         if ($method === 'POST' && $path === '/admin/blog') {
-            $blog->create();
+            $admin->addBlog();
+            return;
+        }
+
+        if ($method === 'POST' && $path === '/admin/blogs/add') {
+            $admin->addBlog();
+            return;
+        }
+
+        if ($method === 'POST' && preg_match('#^/admin/blogs/edit/(\d+)$#', $path, $matches) === 1) {
+            $admin->editBlog((int) $matches[1]);
+            return;
+        }
+
+        if ($method === 'POST' && preg_match('#^/admin/blogs/delete/(\d+)$#', $path, $matches) === 1) {
+            $admin->deleteBlog((int) $matches[1]);
             return;
         }
 

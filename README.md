@@ -13,13 +13,14 @@ This is a full PHP migration of the original FastAPI project for Hostinger share
 
 - Public pages: Home, About, Services, Resources
 - Contact form: DB save + SMTP notification
-- Blog system: list, detail, admin create (PIN-protected)
+- Blog system: list, detail, admin CRUD (PIN-protected via DB manager)
 - Admin verify endpoint (`POST /admin/verify`)
 - Health assessment form (all original questions)
 - Assessment scoring + interpretation logic
 - Admin dashboard:
   - contact add/edit/delete
   - assessment edit/delete
+  - blog add/edit/delete
   - tabbed data manager
 - Health endpoints:
   - `GET /health`

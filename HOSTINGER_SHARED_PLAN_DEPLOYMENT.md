@@ -73,8 +73,7 @@ Open these URLs:
 - `https://fcw.co.in/contact`
 - `https://fcw.co.in/blogs`
 - `https://fcw.co.in/assessment`
-- `https://fcw.co.in/admin/blog`
-- `https://fcw.co.in/admin/contacts`
+- `https://fcw.co.in/admin/contacts` (tabs: contacts, assessments, blogs)
 - `https://fcw.co.in/health`
 - `https://fcw.co.in/health/db`
 

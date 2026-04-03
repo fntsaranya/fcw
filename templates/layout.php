@@ -92,8 +92,7 @@ $pageTitle = $pageTitle ?? 'Functional Chronic Wellness';
             <div class="footer-bottom" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                 <p>&copy; <?= date('Y') ?> Functional Chronic Wellness. All rights reserved.</p>
                 <div style="display: flex; gap: 0.5rem;">
-                    <button onclick="openAdminModal('blog')" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.3rem 0.8rem; border-radius: 5px; cursor: pointer; font-size: 0.8rem; transition: all 0.3s;">Admin Entry</button>
-                    <button onclick="openAdminModal('contacts')" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.3rem 0.8rem; border-radius: 5px; cursor: pointer; font-size: 0.8rem; transition: all 0.3s;">DB Manager</button>
+                    <button onclick="openAdminModal()" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.3rem 0.8rem; border-radius: 5px; cursor: pointer; font-size: 0.8rem; transition: all 0.3s;">DB Manager</button>
                 </div>
             </div>
         </div>
@@ -102,7 +101,7 @@ $pageTitle = $pageTitle ?? 'Functional Chronic Wellness';
     <div id="adminModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
         <div class="glass-card" style="background: white; padding: 2rem; width: 100%; max-width: 400px; text-align: center; position: relative;">
             <span onclick="closeAdminModal()" style="position: absolute; top: 1rem; right: 1rem; cursor: pointer; font-size: 1.5rem;">&times;</span>
-            <h3 style="color: var(--primary-color); margin-bottom: 1.5rem;">Admin Verification</h3>
+            <h3 style="color: var(--primary-color); margin-bottom: 1.5rem;">DB Manager Verification</h3>
             <div style="margin-bottom: 1.5rem;">
                 <input type="password" id="adminPinInput" placeholder="Enter Admin PIN" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem;">
                 <p id="adminError" style="color: red; font-size: 0.9rem; margin-top: 0.5rem; display: none;">Invalid PIN. Try again.</p>
@@ -113,24 +112,15 @@ $pageTitle = $pageTitle ?? 'Functional Chronic Wellness';
 
     <script src="<?= e(asset('js/script.js')) ?>"></script>
     <script>
-        let adminActionType = 'blog';
-
-        function openAdminModal(actionType) {
-            adminActionType = actionType;
+        function openAdminModal() {
             document.getElementById('adminModal').style.display = 'flex';
             document.getElementById('adminPinInput').focus();
-
-            const titleElement = document.querySelector('#adminModal h3');
-            titleElement.textContent = actionType === 'contacts'
-                ? 'DB Manager - Admin Verification'
-                : 'Admin Verification';
         }
 
         function closeAdminModal() {
             document.getElementById('adminModal').style.display = 'none';
             document.getElementById('adminError').style.display = 'none';
             document.getElementById('adminPinInput').value = '';
-            adminActionType = 'blog';
         }
 
         async function verifyAdmin() {
@@ -146,7 +136,7 @@ $pageTitle = $pageTitle ?? 'Functional Chronic Wellness';
                 });
 
                 if (response.ok) {
-                    window.location.href = adminActionType === 'contacts' ? '/admin/contacts' : '/admin/blog';
+                    window.location.href = '/admin/contacts';
                     return;
                 }
 
