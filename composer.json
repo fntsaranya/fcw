@@ -1,0 +1,13 @@
+{
+  "name": "fcw/php-web-app",
+  "description": "Functional Chronic Wellness - Hostinger shared hosting PHP version",
+  "type": "project",
+  "require": {
+    "php": ">=8.1",
+    "phpmailer/phpmailer": "^6.9"
+  },
+  "config": {
+    "sort-packages": true,
+    "optimize-autoloader": true
+  }
+}

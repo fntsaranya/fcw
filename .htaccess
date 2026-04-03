@@ -1,0 +1,14 @@
+Options -Indexes
+
+RewriteEngine On
+
+# Protect internal application directories.
+RewriteRule ^(config|src|templates|tests)(/|$) - [F,L]
+
+# Serve existing files and directories directly.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Route all other requests to the PHP front controller.
+RewriteRule ^ index.php [L,QSA]

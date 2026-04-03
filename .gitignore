@@ -1,0 +1,14 @@
+# Environment
+.env
+
+# Dependencies
+/vendor/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Runtime / logs
+*.log
