@@ -15,8 +15,10 @@ This is a full PHP migration of the original FastAPI project for Hostinger share
 - Register for Enquiry form (`/enquiry`): DB save + SMTP notification
 - Paid appointment flow (`/contact`):
   - Booking form
-  - UPI payment page with GPay/PhonePe QR support
-  - Payment acknowledgement API
+  - Razorpay Checkout payment page
+  - Server-side Razorpay order creation
+  - Checkout signature verification
+  - Webhook reconciliation for payment status
   - Payment status API
 - Blog system: list, detail, admin CRUD (PIN-protected via DB manager)
 - Admin verify endpoint (`POST /admin/verify`)
@@ -26,13 +28,16 @@ This is a full PHP migration of the original FastAPI project for Hostinger share
   - contact add/edit/delete
   - assessment edit/delete
   - blog add/edit/delete
-  - appointment payment verify/reject/delete
+  - Razorpay appointment payment tracking/delete
   - tabbed data manager
 - Health endpoints:
   - `GET /health`
   - `GET /health/db`
 - Payment endpoints:
-  - `POST /api/payments/acknowledge`
+  - `POST /api/payments/order`
+  - `POST /api/payments/verify`
+  - `POST /api/payments/failure`
+  - `POST /api/payments/razorpay/webhook`
   - `GET /api/payments/status/{booking_reference}`
 
 ## Project Structure
@@ -52,7 +57,17 @@ This is a full PHP migration of the original FastAPI project for Hostinger share
    ```bash
    cp .env.example .env
    ```
-2. Fill `.env` values (database, pin, smtp, appointment payment/UPI settings).
+2. Fill `.env` values (database, pin, smtp, appointment fee, and Razorpay settings).
+   For local testing without MySQL/PostgreSQL credentials, use:
+   ```bash
+   DATABASE_URL=sqlite://storage/fcw-local.sqlite
+   ```
+   Razorpay Checkout requires these values from the Razorpay dashboard:
+   ```bash
+   RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxxxx
+   RAZORPAY_KEY_SECRET=your-razorpay-key-secret
+   RAZORPAY_WEBHOOK_SECRET=your-razorpay-webhook-secret
+   ```
 3. Install dependencies:
    ```bash
    composer install --no-dev --optimize-autoloader
@@ -62,6 +77,22 @@ This is a full PHP migration of the original FastAPI project for Hostinger share
    php -S localhost:8000
    ```
 5. Open `http://localhost:8000`.
+
+## Razorpay Setup
+
+Create payments in Razorpay Test Mode while developing. Configure the webhook URL in Razorpay as:
+
+```text
+https://YOUR_DOMAIN/api/payments/razorpay/webhook
+```
+
+Recommended webhook events: `payment.authorized`, `payment.captured`, and `payment.failed`. Use the same webhook secret in Razorpay and `RAZORPAY_WEBHOOK_SECRET`.
+
+If local Windows PHP shows a cURL error like `self-signed certificate in certificate chain`, download a CA bundle to `storage/cacert.pem` and keep:
+
+```bash
+RAZORPAY_CURL_CAINFO=storage/cacert.pem
+```
 
 ## Deployment
 

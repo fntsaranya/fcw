@@ -5,14 +5,20 @@ namespace FCW\Controllers;
 
 use FCW\Core\Config;
 use FCW\Core\View;
+use FCW\Repositories\AppointmentPaymentRepository;
 use FCW\Repositories\AppointmentRepository;
+use FCW\Services\RazorpayService;
 use DateTimeImmutable;
+use RuntimeException;
 use Throwable;
 
 final class AppointmentController
 {
-    public function __construct(private readonly AppointmentRepository $appointments = new AppointmentRepository())
-    {
+    public function __construct(
+        private readonly AppointmentRepository $appointments = new AppointmentRepository(),
+        private readonly AppointmentPaymentRepository $payments = new AppointmentPaymentRepository(),
+        private readonly RazorpayService $razorpay = new RazorpayService()
+    ) {
     }
 
     /**
@@ -131,52 +137,28 @@ final class AppointmentController
         }
 
         $paymentConfig = Config::appointmentPayment();
-        $upiId = trim((string) ($paymentConfig['upi_id'] ?? ''));
-        $upiIntentUrl = '';
-
-        if ($upiId !== '') {
-            $notePrefix = trim((string) ($paymentConfig['upi_note_prefix'] ?? 'FCW Appointment'));
-            $note = trim($notePrefix . ' ' . (string) $booking['booking_reference']);
-            $upiIntentUrl = sprintf(
-                'upi://pay?pa=%s&pn=%s&am=%s&cu=%s&tn=%s',
-                rawurlencode($upiId),
-                rawurlencode((string) ($paymentConfig['upi_payee_name'] ?? Config::appName())),
-                rawurlencode((string) $booking['amount_inr']),
-                rawurlencode((string) ($booking['currency'] ?? 'INR')),
-                rawurlencode($note)
-            );
+        $latestTransaction = null;
+        try {
+            $latestTransaction = $this->payments->latestTransactionForAppointment((int) $booking['id']);
+        } catch (Throwable $exception) {
+            error_log('Appointment transaction lookup warning: ' . $exception->getMessage());
         }
-
-        $gpayPath = (string) ($paymentConfig['gpay_qr_image'] ?? '');
-        $phonepePath = (string) ($paymentConfig['phonepe_qr_image'] ?? '');
-        $gpayLogoPath = (string) ($paymentConfig['gpay_logo_image'] ?? '');
-        $phonepeLogoPath = (string) ($paymentConfig['phonepe_logo_image'] ?? '');
 
         View::render('pages/appointment_payment', [
             'activePage' => 'contact',
             'booking' => $booking,
             'ackToken' => $token,
             'paymentConfig' => $paymentConfig,
-            'upiIntentUrl' => $upiIntentUrl,
-            'gpayLogoPath' => $gpayLogoPath,
-            'phonepeLogoPath' => $phonepeLogoPath,
-            'gpayQrPath' => $gpayPath,
-            'phonepeQrPath' => $phonepePath,
-            'gpayLogoExists' => $this->publicAssetExists($gpayLogoPath),
-            'phonepeLogoExists' => $this->publicAssetExists($phonepeLogoPath),
-            'gpayQrExists' => $this->publicAssetExists($gpayPath),
-            'phonepeQrExists' => $this->publicAssetExists($phonepePath),
+            'paymentConfigured' => $this->razorpay->isConfigured(),
+            'latestTransaction' => $latestTransaction,
         ]);
     }
 
-    public function acknowledgePaymentApi(): void
+    public function createPaymentOrderApi(): void
     {
         $payload = $this->requestPayload();
-
         $reference = trim((string) ($payload['booking_reference'] ?? ''));
         $ackToken = trim((string) ($payload['ack_token'] ?? ''));
-        $upiTransactionRef = trim((string) ($payload['upi_transaction_ref'] ?? ''));
-        $paymentChannel = trim((string) ($payload['payment_channel'] ?? ''));
 
         if ($reference === '' || $ackToken === '') {
             View::json([
@@ -186,27 +168,19 @@ final class AppointmentController
             return;
         }
 
-        if ($paymentChannel === '' || !in_array($paymentChannel, ['gpay', 'phonepe'], true)) {
+        if (!$this->razorpay->isConfigured()) {
             View::json([
                 'status' => 'error',
-                'detail' => 'Please select a valid UPI method (Google Pay or PhonePe).',
-            ], 422);
-            return;
-        }
-
-        if ($upiTransactionRef !== '' && (strlen($upiTransactionRef) < 6 || strlen($upiTransactionRef) > 150)) {
-            View::json([
-                'status' => 'error',
-                'detail' => 'UPI transaction reference must be between 6 and 150 characters.',
-            ], 422);
+                'detail' => 'Online payment is not configured yet. Please contact support.',
+            ], 503);
             return;
         }
 
         try {
             $booking = $this->appointments->findByReferenceAndToken($reference, $ackToken);
         } catch (Throwable $exception) {
-            error_log('Payment lookup error: ' . $exception->getMessage());
-            View::json(['status' => 'error', 'detail' => 'Unable to verify booking at the moment.'], 503);
+            error_log('Payment order booking lookup error: ' . $exception->getMessage());
+            View::json(['status' => 'error', 'detail' => 'Unable to load this booking right now.'], 503);
             return;
         }
 
@@ -216,35 +190,260 @@ final class AppointmentController
         }
 
         $currentStatus = (string) ($booking['payment_status'] ?? 'pending_payment');
-        if ($currentStatus === 'payment_verified') {
+        if (in_array($currentStatus, ['payment_verified', 'payment_partially_refunded'], true)) {
             View::json([
-                'status' => 'ok',
-                'detail' => 'This payment is already verified.',
+                'status' => 'error',
+                'detail' => 'This booking has already been paid.',
                 'booking_reference' => $reference,
-                'payment_status' => 'payment_verified',
-            ]);
+                'payment_status' => $currentStatus,
+            ], 409);
             return;
         }
 
         try {
-            $this->appointments->acknowledgePayment(
-                $reference,
-                $ackToken,
-                $upiTransactionRef === '' ? null : $upiTransactionRef,
-                $paymentChannel === '' ? null : $paymentChannel
+            $localOrder = $this->payments->latestOrderForAppointment((int) $booking['id']);
+            if ($localOrder !== null && (string) $localOrder['status'] === 'paid') {
+                View::json([
+                    'status' => 'error',
+                    'detail' => 'This Razorpay order is already paid.',
+                    'payment_status' => $currentStatus,
+                ], 409);
+                return;
+            }
+
+            $amountSubunits = $this->amountToSubunits((string) $booking['amount_inr']);
+            $currency = strtoupper((string) ($booking['currency'] ?? 'INR'));
+            $gatewayOrder = $this->razorpay->createOrder(
+                $amountSubunits,
+                $currency,
+                $this->newOrderReceipt((string) $booking['booking_reference']),
+                [
+                    'booking_reference' => (string) $booking['booking_reference'],
+                    'appointment_id' => (string) $booking['id'],
+                ]
             );
+
+            if (
+                (int) ($gatewayOrder['amount'] ?? 0) !== $amountSubunits
+                || strtoupper((string) ($gatewayOrder['currency'] ?? '')) !== $currency
+            ) {
+                throw new RuntimeException('Razorpay order amount or currency validation failed.');
+            }
+
+            $localOrder = $this->payments->createOrder((int) $booking['id'], $gatewayOrder);
         } catch (Throwable $exception) {
-            error_log('Payment acknowledge error: ' . $exception->getMessage());
-            View::json(['status' => 'error', 'detail' => 'Could not save payment acknowledgement.'], 503);
+            error_log('Razorpay order create error: ' . $exception->getMessage());
+            $message = strtolower($exception->getMessage());
+            $detail = str_contains($message, 'authentication failed')
+                ? 'Razorpay authentication failed. Please check RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env.'
+                : 'Could not initialize secure payment. Please try again.';
+            View::json([
+                'status' => 'error',
+                'detail' => env_bool('APP_DEBUG', false)
+                    ? 'Could not initialize payment: ' . $exception->getMessage()
+                    : $detail,
+            ], 503);
+            return;
+        }
+
+        $paymentConfig = Config::appointmentPayment();
+        View::json([
+            'status' => 'ok',
+            'checkout' => [
+                'key_id' => $this->razorpay->keyId(),
+                'order_id' => (string) $localOrder['gateway_order_id'],
+                'amount' => (int) $localOrder['amount_subunits'],
+                'currency' => (string) $localOrder['currency'],
+                'name' => (string) ($paymentConfig['checkout_name'] ?? Config::appName()),
+                'description' => (string) ($paymentConfig['checkout_description'] ?? 'Consultation Appointment'),
+                'theme_color' => (string) ($paymentConfig['checkout_theme_color'] ?? '#2d6a4f'),
+                'prefill' => [
+                    'name' => (string) $booking['full_name'],
+                    'email' => (string) $booking['email'],
+                    'contact' => (string) $booking['phone'],
+                ],
+            ],
+        ]);
+    }
+
+    public function verifyPaymentApi(): void
+    {
+        $payload = $this->requestPayload();
+        $reference = trim((string) ($payload['booking_reference'] ?? ''));
+        $ackToken = trim((string) ($payload['ack_token'] ?? ''));
+        $orderId = trim((string) ($payload['razorpay_order_id'] ?? ''));
+        $paymentId = trim((string) ($payload['razorpay_payment_id'] ?? ''));
+        $signature = trim((string) ($payload['razorpay_signature'] ?? ''));
+
+        if ($reference === '' || $ackToken === '' || $orderId === '' || $paymentId === '' || $signature === '') {
+            View::json(['status' => 'error', 'detail' => 'Incomplete payment verification response.'], 422);
+            return;
+        }
+
+        try {
+            $booking = $this->appointments->findByReferenceAndToken($reference, $ackToken);
+            $localOrder = $this->payments->findOrderByGatewayId($orderId);
+        } catch (Throwable $exception) {
+            error_log('Payment verification lookup error: ' . $exception->getMessage());
+            View::json(['status' => 'error', 'detail' => 'Unable to verify payment right now.'], 503);
+            return;
+        }
+
+        if (
+            $booking === null
+            || $localOrder === null
+            || (int) $localOrder['appointment_id'] !== (int) $booking['id']
+        ) {
+            View::json(['status' => 'error', 'detail' => 'Payment does not match this booking.'], 404);
+            return;
+        }
+
+        if (!$this->razorpay->verifyPaymentSignature($orderId, $paymentId, $signature)) {
+            error_log('Razorpay checkout signature mismatch for order ' . $orderId);
+            View::json(['status' => 'error', 'detail' => 'Payment signature verification failed.'], 400);
+            return;
+        }
+
+        try {
+            $payment = $this->razorpay->fetchPayment($paymentId);
+            if (
+                (string) ($payment['id'] ?? '') !== $paymentId
+                || (string) ($payment['order_id'] ?? '') !== $orderId
+            ) {
+                throw new RuntimeException('Razorpay payment identity validation failed.');
+            }
+
+            $result = $this->payments->recordPayment($payment, true, 'checkout');
+        } catch (Throwable $exception) {
+            error_log('Razorpay payment verification error: ' . $exception->getMessage());
+            View::json([
+                'status' => 'error',
+                'detail' => 'Payment was received but confirmation is still processing. Please keep your booking reference.',
+            ], 503);
             return;
         }
 
         View::json([
             'status' => 'ok',
-            'detail' => 'Payment acknowledgement received. Our team will verify and confirm shortly.',
             'booking_reference' => $reference,
-            'payment_status' => 'payment_submitted',
+            'payment_status' => $result['booking_status'],
+            'gateway_status' => $result['gateway_status'],
+            'detail' => $this->statusMessage($result['booking_status']),
         ]);
+    }
+
+    public function paymentFailureApi(): void
+    {
+        $payload = $this->requestPayload();
+        $reference = trim((string) ($payload['booking_reference'] ?? ''));
+        $ackToken = trim((string) ($payload['ack_token'] ?? ''));
+        $orderId = trim((string) ($payload['razorpay_order_id'] ?? ''));
+        $paymentId = trim((string) ($payload['razorpay_payment_id'] ?? ''));
+
+        if ($reference === '' || $ackToken === '' || $orderId === '' || $paymentId === '') {
+            View::json(['status' => 'error', 'detail' => 'Incomplete failed-payment details.'], 422);
+            return;
+        }
+
+        try {
+            $booking = $this->appointments->findByReferenceAndToken($reference, $ackToken);
+            $localOrder = $this->payments->findOrderByGatewayId($orderId);
+            if (
+                $booking === null
+                || $localOrder === null
+                || (int) $localOrder['appointment_id'] !== (int) $booking['id']
+            ) {
+                View::json(['status' => 'error', 'detail' => 'Payment does not match this booking.'], 404);
+                return;
+            }
+
+            $payment = $this->razorpay->fetchPayment($paymentId);
+            if ((string) ($payment['order_id'] ?? '') !== $orderId) {
+                throw new RuntimeException('Razorpay failed-payment order validation failed.');
+            }
+
+            $result = $this->payments->recordPayment($payment, false, 'checkout_failure');
+        } catch (Throwable $exception) {
+            error_log('Razorpay failed-payment reconciliation warning: ' . $exception->getMessage());
+            View::json(['status' => 'error', 'detail' => 'Could not reconcile the failed payment yet.'], 503);
+            return;
+        }
+
+        View::json([
+            'status' => 'ok',
+            'payment_status' => $result['booking_status'],
+            'gateway_status' => $result['gateway_status'],
+            'detail' => $this->statusMessage($result['booking_status']),
+        ]);
+    }
+
+    public function razorpayWebhookApi(): void
+    {
+        $rawBody = file_get_contents('php://input');
+        $rawBody = is_string($rawBody) ? $rawBody : '';
+        $signature = trim((string) ($_SERVER['HTTP_X_RAZORPAY_SIGNATURE'] ?? ''));
+
+        if ($this->razorpay->webhookSecret() === '') {
+            View::json(['status' => 'error', 'detail' => 'Webhook secret is not configured.'], 503);
+            return;
+        }
+
+        if (!$this->razorpay->verifyWebhookSignature($rawBody, $signature)) {
+            View::json(['status' => 'error', 'detail' => 'Invalid webhook signature.'], 400);
+            return;
+        }
+
+        $payload = json_decode($rawBody, true);
+        if (!is_array($payload)) {
+            View::json(['status' => 'error', 'detail' => 'Invalid webhook payload.'], 400);
+            return;
+        }
+
+        $eventType = trim((string) ($payload['event'] ?? 'unknown'));
+        $payment = $payload['payload']['payment']['entity'] ?? null;
+        $payment = is_array($payment) ? $payment : null;
+        $gatewayOrderId = $payment === null ? null : trim((string) ($payment['order_id'] ?? ''));
+        $gatewayPaymentId = $payment === null ? null : trim((string) ($payment['id'] ?? ''));
+        $payloadHash = hash('sha256', $rawBody);
+        $eventId = trim((string) ($_SERVER['HTTP_X_RAZORPAY_EVENT_ID'] ?? ''));
+        $eventId = substr($eventId !== '' ? $eventId : 'sha256:' . $payloadHash, 0, 255);
+        $eventClaimed = false;
+
+        try {
+            $eventClaimed = $this->payments->beginWebhookEvent(
+                $eventId,
+                substr($eventType, 0, 100),
+                $gatewayOrderId === '' ? null : $gatewayOrderId,
+                $gatewayPaymentId === '' ? null : $gatewayPaymentId,
+                $payloadHash
+            );
+
+            if (!$eventClaimed) {
+                View::json(['status' => 'ok', 'detail' => 'Webhook already processed.']);
+                return;
+            }
+
+            if ($payment !== null && $gatewayOrderId !== '') {
+                $localOrder = $this->payments->findOrderByGatewayId($gatewayOrderId);
+                if ($localOrder !== null) {
+                    $this->payments->recordPayment($payment, false, 'webhook');
+                }
+            }
+
+            $this->payments->completeWebhookEvent($eventId);
+        } catch (Throwable $exception) {
+            if ($eventClaimed) {
+                try {
+                    $this->payments->failWebhookEvent($eventId, $exception->getMessage());
+                } catch (Throwable) {
+                }
+            }
+            error_log('Razorpay webhook processing error: ' . $exception->getMessage());
+            View::json(['status' => 'error', 'detail' => 'Webhook processing failed.'], 500);
+            return;
+        }
+
+        View::json(['status' => 'ok']);
     }
 
     public function paymentStatusApi(string $reference): void
@@ -271,6 +470,12 @@ final class AppointmentController
         }
 
         $paymentStatus = (string) ($booking['payment_status'] ?? 'pending_payment');
+        $latestTransaction = null;
+        try {
+            $latestTransaction = $this->payments->latestTransactionForAppointment((int) $booking['id']);
+        } catch (Throwable $exception) {
+            error_log('Payment status transaction lookup warning: ' . $exception->getMessage());
+        }
 
         View::json([
             'status' => 'ok',
@@ -282,6 +487,8 @@ final class AppointmentController
             'payment_acknowledged_at' => $booking['payment_acknowledged_at'] ?? null,
             'payment_verified_at' => $booking['payment_verified_at'] ?? null,
             'verification_note' => $booking['verification_note'] ?? null,
+            'gateway_status' => $latestTransaction['status'] ?? null,
+            'gateway_payment_id' => $latestTransaction['gateway_payment_id'] ?? null,
         ]);
     }
 
@@ -347,22 +554,44 @@ final class AppointmentController
         return null;
     }
 
-    private function publicAssetExists(string $publicPath): bool
+    private function amountToSubunits(string $amount): int
     {
-        if ($publicPath === '' || !str_starts_with($publicPath, '/static/')) {
-            return false;
+        $amount = trim($amount);
+        if (!preg_match('/^(\d+)(?:\.(\d{1,2}))?$/', $amount, $matches)) {
+            throw new RuntimeException('Invalid appointment payment amount.');
         }
 
-        return is_file(BASE_PATH . $publicPath);
+        $whole = (int) $matches[1];
+        $fraction = str_pad((string) ($matches[2] ?? ''), 2, '0');
+        $subunits = ($whole * 100) + (int) $fraction;
+
+        if ($subunits < 1) {
+            throw new RuntimeException('Appointment payment amount must be greater than zero.');
+        }
+
+        return $subunits;
+    }
+
+    private function newOrderReceipt(string $bookingReference): string
+    {
+        return substr(
+            $bookingReference . '-' . date('His') . '-' . strtoupper(bin2hex(random_bytes(2))),
+            0,
+            40
+        );
     }
 
     private function statusMessage(string $status): string
     {
         return match ($status) {
-            'payment_submitted' => 'Payment proof submitted. Verification is in progress.',
-            'payment_verified' => 'Payment verified. Appointment confirmation will be shared shortly.',
-            'payment_rejected' => 'Payment could not be verified. Please re-submit with correct transaction details.',
-            default => 'Awaiting payment acknowledgement from your side.',
+            'payment_initiated' => 'Payment has been initiated in Razorpay.',
+            'payment_authorized' => 'Payment is authorized and awaiting capture confirmation.',
+            'payment_verified' => 'Payment captured successfully. Your appointment request is confirmed.',
+            'payment_failed' => 'Payment was not completed. You can use Pay to try again.',
+            'payment_partially_refunded' => 'This payment has been partially refunded.',
+            'payment_refunded' => 'This payment has been refunded.',
+            'payment_rejected' => 'Payment was rejected during manual review.',
+            default => 'Awaiting payment.',
         };
     }
 

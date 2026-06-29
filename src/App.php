@@ -82,8 +82,23 @@ final class App
             return;
         }
 
-        if ($method === 'POST' && $path === '/api/payments/acknowledge') {
-            $appointment->acknowledgePaymentApi();
+        if ($method === 'POST' && $path === '/api/payments/order') {
+            $appointment->createPaymentOrderApi();
+            return;
+        }
+
+        if ($method === 'POST' && $path === '/api/payments/verify') {
+            $appointment->verifyPaymentApi();
+            return;
+        }
+
+        if ($method === 'POST' && $path === '/api/payments/failure') {
+            $appointment->paymentFailureApi();
+            return;
+        }
+
+        if ($method === 'POST' && $path === '/api/payments/razorpay/webhook') {
+            $appointment->razorpayWebhookApi();
             return;
         }
 

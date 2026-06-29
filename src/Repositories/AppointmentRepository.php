@@ -15,7 +15,30 @@ final class AppointmentRepository
      */
     public function all(int $limit = 200): array
     {
-        $sql = 'SELECT * FROM appointment_bookings ORDER BY created_at DESC LIMIT :limit';
+        $sql = 'SELECT b.*,
+                       o.gateway_order_id,
+                       o.status AS gateway_order_status,
+                       t.gateway_payment_id,
+                       t.status AS gateway_payment_status,
+                       t.method AS gateway_method,
+                       t.checkout_signature_verified,
+                       t.error_description AS gateway_error_description,
+                       t.updated_at AS gateway_updated_at
+                FROM appointment_bookings b
+                LEFT JOIN appointment_payment_orders o
+                  ON o.id = (
+                      SELECT MAX(o2.id)
+                      FROM appointment_payment_orders o2
+                      WHERE o2.appointment_id = b.id
+                  )
+                LEFT JOIN appointment_payment_transactions t
+                  ON t.id = (
+                      SELECT MAX(t2.id)
+                      FROM appointment_payment_transactions t2
+                      WHERE t2.payment_order_id = o.id
+                  )
+                ORDER BY b.created_at DESC
+                LIMIT :limit';
         $stmt = Database::connection()->prepare($sql);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
@@ -160,8 +183,8 @@ final class AppointmentRepository
                 SET payment_status = :payment_status,
                     upi_transaction_ref = :upi_transaction_ref,
                     payment_channel = :payment_channel,
-                    payment_acknowledged_at = NOW(),
-                    updated_at = NOW()
+                    payment_acknowledged_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE booking_reference = :booking_reference
                   AND ack_token = :ack_token';
 
@@ -180,9 +203,9 @@ final class AppointmentRepository
     {
         $sql = 'UPDATE appointment_bookings
                 SET payment_status = :payment_status,
-                    payment_verified_at = NOW(),
+                    payment_verified_at = CURRENT_TIMESTAMP,
                     verification_note = :verification_note,
-                    updated_at = NOW()
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE id = :id';
         $stmt = Database::connection()->prepare($sql);
 
@@ -199,7 +222,7 @@ final class AppointmentRepository
                 SET payment_status = :payment_status,
                     payment_verified_at = NULL,
                     verification_note = :verification_note,
-                    updated_at = NOW()
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE id = :id';
         $stmt = Database::connection()->prepare($sql);
 
@@ -230,6 +253,6 @@ final class AppointmentRepository
             return true;
         }
 
-        return $sqlState === '23000' && $driverCode === 1062;
+        return $sqlState === '23000' && in_array($driverCode, [19, 1062], true);
     }
 }

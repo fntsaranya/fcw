@@ -5,6 +5,8 @@ namespace FCW\Core;
 
 final class Config
 {
+    private const RAZORPAY_MODES = ['test', 'live'];
+
     public static function appName(): string
     {
         return (string) env('APP_NAME', 'Functional Chronic Wellness');
@@ -56,16 +58,19 @@ final class Config
 
     public static function appointmentPayment(): array
     {
+        $mode = self::razorpayMode();
         return [
+            'razorpay_mode' => $mode,
+            'razorpay_mode_label' => ucfirst($mode) . ' Mode',
             'fee_inr' => (string) env('APPOINTMENT_FEE_INR', '499.00'),
             'currency' => 'INR',
-            'upi_id' => (string) env('UPI_ID', ''),
-            'upi_payee_name' => (string) env('UPI_PAYEE_NAME', self::appName()),
-            'upi_note_prefix' => (string) env('UPI_NOTE_PREFIX', 'FCW Appointment'),
-            'gpay_logo_image' => (string) env('GPAY_LOGO_IMAGE', '/static/images/gpay-logo.png'),
-            'phonepe_logo_image' => (string) env('PHONEPE_LOGO_IMAGE', '/static/images/phonepe-logo.png'),
-            'gpay_qr_image' => (string) env('GPAY_QR_IMAGE', '/static/images/gpay-qr.png'),
-            'phonepe_qr_image' => (string) env('PHONEPE_QR_IMAGE', '/static/images/phonepe-qr.png'),
+            'razorpay_key_id' => self::razorpayEnvValue($mode, 'KEY_ID', 'RAZORPAY_KEY_ID'),
+            'razorpay_key_secret' => self::razorpayEnvValue($mode, 'KEY_SECRET', 'RAZORPAY_KEY_SECRET'),
+            'razorpay_webhook_secret' => self::razorpayEnvValue($mode, 'WEBHOOK_SECRET', 'RAZORPAY_WEBHOOK_SECRET'),
+            'razorpay_curl_cainfo' => (string) env('RAZORPAY_CURL_CAINFO', ''),
+            'checkout_name' => (string) env('RAZORPAY_CHECKOUT_NAME', self::appName()),
+            'checkout_description' => (string) env('RAZORPAY_CHECKOUT_DESCRIPTION', 'Consultation Appointment'),
+            'checkout_theme_color' => (string) env('RAZORPAY_CHECKOUT_THEME_COLOR', '#2d6a4f'),
         ];
     }
 
@@ -82,5 +87,22 @@ final class Config
     public static function dbPoolRecycleSeconds(): int
     {
         return env_int('DB_POOL_RECYCLE_SECONDS', 1800);
+    }
+
+    private static function razorpayMode(): string
+    {
+        $mode = strtolower(trim((string) env('RAZORPAY_MODE', 'test')));
+        return in_array($mode, self::RAZORPAY_MODES, true) ? $mode : 'test';
+    }
+
+    private static function razorpayEnvValue(string $mode, string $suffix, string $legacyKey): string
+    {
+        $modeKey = strtoupper($mode);
+        $value = trim((string) env('RAZORPAY_' . $modeKey . '_' . $suffix, ''));
+        if ($value !== '') {
+            return $value;
+        }
+
+        return trim((string) env($legacyKey, ''));
     }
 }

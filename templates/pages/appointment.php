@@ -8,7 +8,6 @@ $minDate = date('Y-m-d');
     <div class="container">
         <div class="glass-card" style="max-width: 860px; margin: 0 auto;">
             <h2 style="text-align: center; color: var(--primary-color); margin-bottom: 0.8rem;">Book Consultation Appointment</h2>
-            <p style="text-align: center; margin-bottom: 1.5rem;">Fill this form, continue to UPI payment, and submit transaction reference to confirm your slot.</p>
 
             <div style="background: rgba(45, 106, 79, 0.08); border: 1px solid rgba(45, 106, 79, 0.25); border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; text-align: center;">
                 <strong>Consultation Fee: INR <?= e($feeInr) ?></strong>
@@ -53,7 +52,7 @@ $minDate = date('Y-m-d');
                     <textarea id="concern" name="concern" rows="5" required style="width: 100%; padding: 0.9rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); background: rgba(255,255,255,0.8); font-family: var(--font-body);"><?= e((string) ($oldInput['concern'] ?? '')) ?></textarea>
                 </div>
 
-                <button type="submit" class="btn-primary" style="font-size: 1.05rem; padding: 1rem; margin-top: 0.6rem; width: 100%;">Continue to UPI Payment</button>
+                <button type="submit" class="btn-primary" style="font-size: 1.05rem; padding: 1rem; margin-top: 0.6rem; width: 100%;">Continue</button>
             </form>
 
             <div style="margin-top: 1.2rem; text-align: center;">

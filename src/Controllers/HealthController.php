@@ -17,9 +17,14 @@ final class HealthController
     public function dbHealth(): void
     {
         try {
-            $stmt = Database::connection()->query('SELECT version()');
+            $sql = Database::driver() === 'sqlite' ? 'SELECT sqlite_version()' : 'SELECT version()';
+            $stmt = Database::connection()->query($sql);
             $version = (string) $stmt->fetchColumn();
-            View::json(['status' => 'ok', 'db_version' => $version]);
+            View::json([
+                'status' => 'ok',
+                'driver' => Database::driver(),
+                'db_version' => $version,
+            ]);
         } catch (Throwable $exception) {
             View::json(['status' => 'error', 'detail' => $exception->getMessage()], 500);
         }

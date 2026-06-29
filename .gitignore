@@ -12,3 +12,6 @@ Thumbs.db
 
 # Runtime / logs
 *.log
+storage/*.sqlite
+storage/*.sqlite-*
+storage/cacert.pem
