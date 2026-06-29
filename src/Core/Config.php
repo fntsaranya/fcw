@@ -56,6 +56,7 @@ final class Config
         ];
     }
 
+    
     public static function appointmentPayment(): array
     {
         $mode = self::razorpayMode();
