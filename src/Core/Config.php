@@ -55,7 +55,6 @@ final class Config
             'admin_email' => (string) env('ADMIN_EMAIL', 'fntsaranya@gmail.com'),
         ];
     }
-
     
     public static function appointmentPayment(): array
     {
