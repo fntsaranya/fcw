@@ -36,6 +36,7 @@ final class App
         $assessment = new AssessmentController();
         $admin = new AdminController();
         $health = new HealthController();
+        $patientIntake = new \FCW\Controllers\PatientIntakeController();
 
         if ($method === 'GET' && $path === '/') {
             $pages->home();
@@ -104,6 +105,16 @@ final class App
 
         if ($method === 'GET' && preg_match('#^/api/payments/status/([A-Za-z0-9_-]+)$#', $path, $matches) === 1) {
             $appointment->paymentStatusApi((string) $matches[1]);
+            return;
+        }
+
+        if ($method === 'GET' && $path === '/patient-intake') {
+            $patientIntake->show();
+            return;
+        }
+
+        if ($method === 'POST' && $path === '/patient-intake') {
+            $patientIntake->submit();
             return;
         }
 
@@ -189,6 +200,11 @@ final class App
 
         if ($method === 'POST' && preg_match('#^/admin/appointments/verify/(\d+)$#', $path, $matches) === 1) {
             $admin->verifyAppointment((int) $matches[1]);
+            return;
+        }
+
+        if ($method === 'POST' && preg_match('#^/admin/appointments/pdf/(\d+)$#', $path, $matches) === 1) {
+            $admin->downloadPatientPdf((int) $matches[1]);
             return;
         }
 

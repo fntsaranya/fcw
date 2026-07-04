@@ -43,7 +43,25 @@ $minDate = date('Y-m-d');
                     </div>
                     <div style="text-align: left;">
                         <label for="preferred_time" style="display: block; margin-bottom: 0.4rem; font-weight: 500;">Preferred Time</label>
-                        <input type="text" id="preferred_time" name="preferred_time" value="<?= e((string) ($oldInput['preferred_time'] ?? '')) ?>" placeholder="Example: 10:30 AM - 11:00 AM" style="width: 100%; padding: 0.9rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); background: rgba(255,255,255,0.8); font-family: var(--font-body);">
+                        <select id="preferred_time" name="preferred_time" style="width: 100%; padding: 0.9rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); background: rgba(255,255,255,0.8); font-family: var(--font-body);">
+                            <option value="">Select a time slot</option>
+                            <?php
+                            $slots = [
+                                "10:00 AM - 10:30 AM", "10:30 AM - 11:00 AM",
+                                "11:00 AM - 11:30 AM", "11:30 AM - 12:00 PM",
+                                "12:00 PM - 12:30 PM", "12:30 PM - 01:00 PM",
+                                "01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM",
+                                "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM",
+                                "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM",
+                                "04:00 PM - 04:30 PM", "04:30 PM - 05:00 PM",
+                                "05:00 PM - 05:30 PM", "05:30 PM - 06:00 PM"
+                            ];
+                            foreach ($slots as $slot) {
+                                $selected = (string) ($oldInput['preferred_time'] ?? '') === $slot ? 'selected' : '';
+                                echo '<option value="' . e($slot) . '" ' . $selected . '>' . e($slot) . '</option>';
+                            }
+                            ?>
+                        </select>
                     </div>
                 </div>
 
@@ -54,10 +72,6 @@ $minDate = date('Y-m-d');
 
                 <button type="submit" class="btn-primary" style="font-size: 1.05rem; padding: 1rem; margin-top: 0.6rem; width: 100%;">Continue</button>
             </form>
-
-            <div style="margin-top: 1.2rem; text-align: center;">
-                <a href="/enquiry" style="color: var(--primary-color); text-decoration: underline;">Need only enquiry (without payment)? Register here.</a>
-            </div>
         </div>
     </div>
 </section>

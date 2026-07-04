@@ -369,6 +369,41 @@ final class AdminController
         View::redirect('/admin/contacts?tab=appointments');
     }
 
+    public function downloadPatientPdf(int $appointmentId): void
+    {
+        if (!$this->isPinValid((string) ($_POST['pin'] ?? ''))) {
+            Flash::add('error', 'Invalid Admin PIN');
+            View::redirect('/admin/contacts?tab=appointments');
+        }
+
+        $intakeRepo = new \FCW\Repositories\PatientIntakeRepository();
+        $intake = $intakeRepo->findByAppointmentId($appointmentId);
+
+        if (!$intake) {
+            Flash::add('error', 'No patient intake found for this appointment.');
+            View::redirect('/admin/contacts?tab=appointments');
+        }
+
+        if (!class_exists('\\Dompdf\\Dompdf')) {
+            Flash::add('error', 'PDF generation library is not installed. Please run composer install.');
+            View::redirect('/admin/contacts?tab=appointments');
+        }
+
+        ob_start();
+        extract($intake, EXTR_SKIP);
+        include BASE_PATH . '/templates/admin/pdf_template.php';
+        $html = ob_get_clean();
+
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        
+        $filename = "FCW_Timeline_" . preg_replace('/[^a-zA-Z0-9_-]/', '_', $intake['patient_name']) . ".pdf";
+        $dompdf->stream($filename, ["Attachment" => true]);
+        exit;
+    }
+
     private function normalizeImageUrl(string $imageUrlRaw): ?string
     {
         $imageUrl = trim($imageUrlRaw);

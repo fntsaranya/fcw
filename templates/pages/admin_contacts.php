@@ -303,7 +303,8 @@ $activeTab = $activeTab ?? 'contacts';
                                     <td style="padding:0.85rem;"><?= e($gatewayStatus !== '' ? ucfirst(str_replace('_', ' ', $gatewayStatus)) : '-') ?></td>
                                     <td style="padding:0.85rem;"><span style="display:inline-block; padding:0.28rem 0.65rem; border-radius:999px; background:<?= e($status['bg']) ?>; color:<?= e($status['color']) ?>; font-weight:700;"><?= e($status['label']) ?></span></td>
                                     <td style="padding:0.85rem;"><?= e($updatedText) ?></td>
-                                    <td style="padding:0.85rem; text-align:center; white-space:nowrap;">
+                                    <td style="padding:0.85rem; text-align:center; white-space:nowrap; display:flex; gap:0.5rem; justify-content:center;">
+                                        <button class="download-pdf-btn" data-id="<?= (int) ($appointment['id'] ?? 0) ?>" style="padding:0.45rem 0.65rem; background:#e0f2fe; border:1px solid #bae6fd; border-radius:6px; color:#0369a1; cursor:pointer;" title="Download Intake PDF"><i class="fas fa-file-pdf"></i> PDF</button>
                                         <button class="delete-appointment-btn" data-id="<?= (int) ($appointment['id'] ?? 0) ?>" style="padding:0.45rem 0.65rem; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; color:#b91c1c; cursor:pointer;">Delete</button>
                                     </td>
                                 </tr>
@@ -430,6 +431,20 @@ $activeTab = $activeTab ?? 'contacts';
             <div style="display:flex; gap:0.7rem;">
                 <button type="submit" style="flex:1; border:none; border-radius:8px; background:#ef4444; color:white; padding:0.8rem; cursor:pointer;">Delete</button>
                 <button type="button" onclick="closeDeleteAppointmentModal()" style="flex:1; border:none; border-radius:8px; background:#6b7280; color:white; cursor:pointer;">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="downloadPdfModal" style="display:none; position:fixed; inset:0; background: rgba(0,0,0,0.65); z-index:1000; align-items:center; justify-content:center;">
+    <div class="glass-card" style="background:white; width:90%; max-width:420px;">
+        <h3>Download Patient Intake PDF</h3>
+        <p style="margin-bottom:1rem;">Enter Admin PIN to securely download the timeline PDF.</p>
+        <form id="downloadPdfForm" method="post" style="display:grid; gap:0.9rem;">
+            <input type="password" name="pin" required style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #ccc;" placeholder="Admin PIN">
+            <div style="display:flex; gap:0.7rem;">
+                <button type="submit" style="flex:1; border:none; border-radius:8px; background:#0369a1; color:white; padding:0.8rem; cursor:pointer;">Download PDF</button>
+                <button type="button" onclick="closeDownloadPdfModal()" style="flex:1; border:none; border-radius:8px; background:#6b7280; color:white; cursor:pointer;">Cancel</button>
             </div>
         </form>
     </div>
@@ -585,6 +600,13 @@ $activeTab = $activeTab ?? 'contacts';
         });
     });
 
+    document.querySelectorAll('.download-pdf-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+            document.getElementById('downloadPdfForm').action = '/admin/appointments/pdf/' + button.getAttribute('data-id');
+            document.getElementById('downloadPdfModal').style.display = 'flex';
+        });
+    });
+
     function closeEditContactModal() {
         document.getElementById('editContactModal').style.display = 'none';
     }
@@ -613,8 +635,12 @@ $activeTab = $activeTab ?? 'contacts';
         document.getElementById('deleteAppointmentModal').style.display = 'none';
     }
 
+    function closeDownloadPdfModal() {
+        document.getElementById('downloadPdfModal').style.display = 'none';
+    }
+
     window.addEventListener('click', function (event) {
-        ['editContactModal', 'deleteContactModal', 'editAssessmentModal', 'deleteAssessmentModal', 'editBlogModal', 'deleteBlogModal', 'deleteAppointmentModal'].forEach(function (id) {
+        ['editContactModal', 'deleteContactModal', 'editAssessmentModal', 'deleteAssessmentModal', 'editBlogModal', 'deleteBlogModal', 'deleteAppointmentModal', 'downloadPdfModal'].forEach(function (id) {
             const modal = document.getElementById(id);
             if (event.target === modal) {
                 modal.style.display = 'none';

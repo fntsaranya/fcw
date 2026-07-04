@@ -6,6 +6,7 @@ $file = __DIR__ . ($path === '/' ? '' : $path);
 
 if ($path !== '/' && is_file($file)) {
     return false;
-}
+
 
 require __DIR__ . '/index.php';
+}

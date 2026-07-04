@@ -86,10 +86,20 @@ $paymentComplete = in_array(
                 id="payButton"
                 type="button"
                 class="btn-primary payment-button"
-                <?= (!$paymentConfigured || $paymentComplete) ? 'disabled' : '' ?>
+                style="<?= $paymentComplete ? 'display: none;' : '' ?>"
+                <?= (!$paymentConfigured) ? 'disabled' : '' ?>
             >
                 Pay
             </button>
+
+            <a
+                id="continueButton"
+                href="/patient-intake?ref=<?= urlencode($reference) ?>&token=<?= urlencode((string) ($ackToken ?? '')) ?>"
+                class="btn-primary payment-button"
+                style="<?= ($paymentStatus === 'payment_verified') ? '' : 'display: none;' ?>"
+            >
+                Continue to Patient Details
+            </a>
 
             <?php if (!empty($latestTransaction['gateway_payment_id'])): ?>
                 <p class="payment-id">
@@ -383,8 +393,14 @@ $paymentComplete = in_array(
             }
 
             if (terminalStatuses.includes(status)) {
-                payButton.disabled = true;
-                payButton.textContent = 'Paid';
+                if (status === 'payment_verified') {
+                    payButton.style.display = 'none';
+                    const continueBtn = document.getElementById('continueButton');
+                    if (continueBtn) continueBtn.style.display = '';
+                } else {
+                    payButton.disabled = true;
+                    payButton.textContent = 'Paid / Failed';
+                }
             }
         }
 

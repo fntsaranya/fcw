@@ -15,3 +15,7 @@ Thumbs.db
 storage/*.sqlite
 storage/*.sqlite-*
 storage/cacert.pem
+
+#local files:
+install_dompdf.ps1
+composer.phar
