@@ -218,6 +218,16 @@ final class App
             return;
         }
 
+        if ($method === 'POST' && preg_match('#^/admin/appointments/intake/edit/(\d+)$#', $path, $matches) === 1) {
+            $admin->editIntake((int) $matches[1]);
+            return;
+        }
+
+        if ($method === 'POST' && preg_match('#^/admin/appointments/intake/update/(\d+)$#', $path, $matches) === 1) {
+            $admin->updateIntake((int) $matches[1]);
+            return;
+        }
+
         if ($method === 'GET' && $path === '/health') {
             $health->health();
             return;

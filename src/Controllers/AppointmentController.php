@@ -31,6 +31,7 @@ final class AppointmentController
             'paymentConfig' => Config::appointmentPayment(),
             'oldInput' => $oldInput,
             'errorMessage' => $errorMessage,
+            'bookedSlots' => $this->appointments->getBookedSlots(),
         ]);
     }
 

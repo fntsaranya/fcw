@@ -422,4 +422,127 @@ final class AdminController
     {
         return AdminAuth::verifyPin(trim($pin));
     }
+
+    public function editIntake(int $appointmentId): void
+    {
+        if (!$this->isPinValid((string) ($_POST['pin'] ?? ''))) {
+            Flash::add('error', 'Invalid PIN. Authentication required.');
+            View::redirect('/admin/contacts?tab=appointments');
+            return;
+        }
+        
+        $appointment = $this->appointments->findById($appointmentId);
+        if (!$appointment) {
+            http_response_code(404);
+            echo "Appointment not found.";
+            return;
+        }
+
+        $intakeRepo = new \FCW\Repositories\PatientIntakeRepository();
+        $intake = $intakeRepo->findByAppointmentId($appointmentId);
+
+        \FCW\Core\View::render('pages/admin_intake_form', [
+            'appointment' => $appointment,
+            'intake' => $intake
+        ]);
+    }
+
+    public function updateIntake(int $appointmentId): void
+    {
+        if (!$this->isPinValid((string) ($_POST['pin'] ?? ''))) {
+            Flash::add('error', 'Invalid PIN. Authentication required.');
+            View::redirect('/admin/contacts?tab=appointments');
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            return;
+        }
+
+        $appointment = $this->appointments->findById($appointmentId);
+        if (!$appointment) {
+            http_response_code(404);
+            echo "Appointment not found.";
+            return;
+        }
+
+        $intakeRepo = new \FCW\Repositories\PatientIntakeRepository();
+
+        $buildJson = function ($keys) {
+            $data = [];
+            $firstKey = array_key_first($keys);
+            if (!empty($_POST[$firstKey]) && is_array($_POST[$firstKey])) {
+                $count = count($_POST[$firstKey]);
+                for ($i = 0; $i < $count; $i++) {
+                    $item = [];
+                    $hasValue = false;
+                    foreach ($keys as $key => $jsonKey) {
+                        $val = trim((string) ($_POST[$key][$i] ?? ''));
+                        $item[$jsonKey] = $val;
+                        if ($val !== '') {
+                            $hasValue = true;
+                        }
+                    }
+                    if ($hasValue) {
+                        $data[] = $item;
+                    }
+                }
+            }
+            return $data;
+        };
+
+        $healthIssues = $buildJson(['hi_issue' => 'issue', 'hi_detail' => 'detail', 'hi_start_date' => 'start_date', 'hi_treatment' => 'treatment']);
+        $timelineHistory = $buildJson(['th_stage' => 'stage', 'th_detail' => 'detail']);
+        $specificQuestions = $buildJson(['sq_question' => 'question', 'sq_detail' => 'detail']);
+        $medications = $buildJson(['med_name' => 'name', 'med_morning' => 'morning', 'med_lunch' => 'lunch', 'med_dinner' => 'dinner']);
+
+        try {
+            $intakeRepo->upsert(
+                $appointmentId,
+                trim((string) ($_POST['patient_name'] ?? '')),
+                trim((string) ($_POST['form_date'] ?? '')) ?: null,
+                !empty($_POST['age']) ? (int) $_POST['age'] : null,
+                trim((string) ($_POST['sex'] ?? '')) ?: null,
+                trim((string) ($_POST['address'] ?? '')) ?: null,
+                trim((string) ($_POST['surrounding_area'] ?? '')) ?: null,
+                trim((string) ($_POST['occupation'] ?? '')) ?: null,
+                trim((string) ($_POST['dietary_preference'] ?? '')) ?: null,
+                trim((string) ($_POST['covid_vaccination'] ?? '')) ?: null,
+                trim((string) ($_POST['weight'] ?? '')) ?: null,
+                trim((string) ($_POST['height'] ?? '')) ?: null,
+                null, // BMI calculated elsewhere if needed, or null since PDF generates it
+                trim((string) ($_POST['hip_circumference'] ?? '')) ?: null,
+                trim((string) ($_POST['waist_circumference'] ?? '')) ?: null,
+                trim((string) ($_POST['food_sensitivities'] ?? '')) ?: null,
+                trim((string) ($_POST['food_allergies'] ?? '')) ?: null,
+                trim((string) ($_POST['crave_binge'] ?? '')) ?: null,
+                trim((string) ($_POST['diet_followed'] ?? '')) ?: null,
+                trim((string) ($_POST['other_sensitivities'] ?? '')) ?: null,
+                trim((string) ($_POST['toxicities'] ?? '')) ?: null,
+                ($_POST['sleep_regular'] ?? 'yes') === 'yes',
+                trim((string) ($_POST['sleep_details'] ?? '')) ?: null,
+                trim((string) ($_POST['fm_mother'] ?? '')) ?: null,
+                trim((string) ($_POST['fm_father'] ?? '')) ?: null,
+                trim((string) ($_POST['fm_sister'] ?? '')) ?: null,
+                trim((string) ($_POST['fm_brother'] ?? '')) ?: null,
+                trim((string) ($_POST['fm_grandparents'] ?? '')) ?: null,
+                trim((string) ($_POST['fm_spouse'] ?? '')) ?: null,
+                trim((string) ($_POST['fm_children'] ?? '')) ?: null,
+                trim((string) ($_POST['current_concern'] ?? '')) ?: null,
+                $healthIssues,
+                $timelineHistory,
+                $specificQuestions,
+                $medications
+            );
+
+            $_SESSION['flash_message'] = "Intake form updated successfully.";
+            header('Location: /admin/contacts?tab=appointments');
+            exit;
+        } catch (Throwable $e) {
+            error_log("Error updating admin intake: " . $e->getMessage());
+            echo "Error updating intake form: " . htmlspecialchars($e->getMessage());
+            exit;
+        }
+    }
 }

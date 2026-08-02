@@ -248,6 +248,7 @@ $activeTab = $activeTab ?? 'contacts';
                                 <th style="padding:0.9rem; text-align:left;">Razorpay IDs</th>
                                 <th style="padding:0.9rem; text-align:left;">Gateway</th>
                                 <th style="padding:0.9rem; text-align:left;">Booking Status</th>
+                                <th style="padding:0.9rem; text-align:left;">Intake Status</th>
                                 <th style="padding:0.9rem; text-align:left;">Updated</th>
                                 <th style="padding:0.9rem; text-align:center;">Actions</th>
                             </tr>
@@ -282,6 +283,8 @@ $activeTab = $activeTab ?? 'contacts';
                                     $orderId = trim((string) ($appointment['gateway_order_id'] ?? ''));
                                     $paymentId = trim((string) ($appointment['gateway_payment_id'] ?? ''));
                                     $gatewayStatus = trim((string) ($appointment['gateway_payment_status'] ?? $appointment['gateway_order_status'] ?? ''));
+                                    $hasIntakeForm = !empty($appointment['has_intake_form']);
+                                    $intakeLink = '/patient-intake?ref=' . urlencode((string) ($appointment['booking_reference'] ?? '')) . '&token=' . urlencode((string) ($appointment['ack_token'] ?? ''));
                                 ?>
                                 <tr style="border-bottom: 1px solid #f1f5f9; vertical-align: top;">
                                     <td style="padding:0.85rem; font-weight:700; color:var(--primary-color);">#<?= (int) ($appointment['id'] ?? 0) ?></td>
@@ -302,8 +305,24 @@ $activeTab = $activeTab ?? 'contacts';
                                     </td>
                                     <td style="padding:0.85rem;"><?= e($gatewayStatus !== '' ? ucfirst(str_replace('_', ' ', $gatewayStatus)) : '-') ?></td>
                                     <td style="padding:0.85rem;"><span style="display:inline-block; padding:0.28rem 0.65rem; border-radius:999px; background:<?= e($status['bg']) ?>; color:<?= e($status['color']) ?>; font-weight:700;"><?= e($status['label']) ?></span></td>
+                                    <td style="padding:0.85rem;">
+                                        <?php if ($hasIntakeForm): ?>
+                                            <span style="display:inline-block; padding:0.28rem 0.65rem; border-radius:999px; background:#dcfce7; color:#166534; font-weight:700; font-size:0.85rem;"><i class="fas fa-check-circle"></i> Submitted</span>
+                                        <?php else: ?>
+                                            <div style="display:flex; flex-direction:column; gap:0.4rem; align-items:start;">
+                                                <span style="display:inline-block; padding:0.28rem 0.65rem; border-radius:999px; background:#fef3c7; color:#92400e; font-weight:700; font-size:0.85rem;"><i class="fas fa-clock"></i> Pending</span>
+                                                <?php
+                                                    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+                                                    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                                                    $fullUrl = $protocol . $host . $intakeLink;
+                                                ?>
+                                                <button onclick="copyIntakeLink(this, '<?= e(addslashes($fullUrl)) ?>')" style="padding:0.25rem 0.5rem; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; font-size:0.75rem; cursor:pointer; color:#0f766e;"><i class="fas fa-copy"></i> Copy Link</button>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
                                     <td style="padding:0.85rem;"><?= e($updatedText) ?></td>
                                     <td style="padding:0.85rem; text-align:center; white-space:nowrap; display:flex; gap:0.5rem; justify-content:center;">
+                                        <button class="edit-intake-btn" data-id="<?= (int) ($appointment['id'] ?? 0) ?>" style="padding:0.45rem 0.65rem; background:#fef9c3; border:1px solid #fde047; border-radius:6px; color:#854d0e; cursor:pointer;" title="Edit Intake Form"><i class="fas fa-edit"></i> Edit Form</button>
                                         <button class="download-pdf-btn" data-id="<?= (int) ($appointment['id'] ?? 0) ?>" style="padding:0.45rem 0.65rem; background:#e0f2fe; border:1px solid #bae6fd; border-radius:6px; color:#0369a1; cursor:pointer;" title="Download Intake PDF"><i class="fas fa-file-pdf"></i> PDF</button>
                                         <button class="delete-appointment-btn" data-id="<?= (int) ($appointment['id'] ?? 0) ?>" style="padding:0.45rem 0.65rem; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; color:#b91c1c; cursor:pointer;">Delete</button>
                                     </td>
@@ -450,6 +469,20 @@ $activeTab = $activeTab ?? 'contacts';
     </div>
 </div>
 
+<div id="editIntakeModal" style="display:none; position:fixed; inset:0; background: rgba(0,0,0,0.65); z-index:1000; align-items:center; justify-content:center;">
+    <div class="glass-card" style="background:white; width:90%; max-width:420px;">
+        <h3>Edit Intake Form</h3>
+        <p style="margin-bottom:1rem;">Enter Admin PIN to securely edit the intake form.</p>
+        <form id="editIntakeForm" method="post" style="display:grid; gap:0.9rem;">
+            <input type="password" name="pin" required style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #ccc;" placeholder="Admin PIN">
+            <div style="display:flex; gap:0.7rem;">
+                <button type="submit" style="flex:1; border:none; border-radius:8px; background:#ca8a04; color:white; padding:0.8rem; cursor:pointer;">Edit Form</button>
+                <button type="button" onclick="closeEditIntakeModal()" style="flex:1; border:none; border-radius:8px; background:#6b7280; color:white; cursor:pointer;">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <style>
     .badge {
         padding: 0.3rem 0.8rem;
@@ -576,6 +609,18 @@ $activeTab = $activeTab ?? 'contacts';
         });
     });
 
+    window.copyIntakeLink = function(btn, url) {
+        navigator.clipboard.writeText(url).then(() => {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            btn.style.color = '#166534';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.style.color = '#0f766e';
+            }, 2000);
+        });
+    };
+
     document.querySelectorAll('.edit-blog-btn').forEach(function (button) {
         button.addEventListener('click', function () {
             document.getElementById('edit_blog_title').value = button.getAttribute('data-title') || '';
@@ -604,6 +649,13 @@ $activeTab = $activeTab ?? 'contacts';
         button.addEventListener('click', function () {
             document.getElementById('downloadPdfForm').action = '/admin/appointments/pdf/' + button.getAttribute('data-id');
             document.getElementById('downloadPdfModal').style.display = 'flex';
+        });
+    });
+
+    document.querySelectorAll('.edit-intake-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+            document.getElementById('editIntakeForm').action = '/admin/appointments/intake/edit/' + button.getAttribute('data-id');
+            document.getElementById('editIntakeModal').style.display = 'flex';
         });
     });
 
@@ -639,8 +691,12 @@ $activeTab = $activeTab ?? 'contacts';
         document.getElementById('downloadPdfModal').style.display = 'none';
     }
 
+    function closeEditIntakeModal() {
+        document.getElementById('editIntakeModal').style.display = 'none';
+    }
+
     window.addEventListener('click', function (event) {
-        ['editContactModal', 'deleteContactModal', 'editAssessmentModal', 'deleteAssessmentModal', 'editBlogModal', 'deleteBlogModal', 'deleteAppointmentModal', 'downloadPdfModal'].forEach(function (id) {
+        ['editContactModal', 'deleteContactModal', 'editAssessmentModal', 'deleteAssessmentModal', 'editBlogModal', 'deleteBlogModal', 'deleteAppointmentModal', 'downloadPdfModal', 'editIntakeModal'].forEach(function (id) {
             const modal = document.getElementById(id);
             if (event.target === modal) {
                 modal.style.display = 'none';

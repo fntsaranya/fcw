@@ -23,7 +23,8 @@ final class AppointmentRepository
                        t.method AS gateway_method,
                        t.checkout_signature_verified,
                        t.error_description AS gateway_error_description,
-                       t.updated_at AS gateway_updated_at
+                       t.updated_at AS gateway_updated_at,
+                       (SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END FROM patient_intake_forms pif WHERE pif.appointment_id = b.id) as has_intake_form
                 FROM appointment_bookings b
                 LEFT JOIN appointment_payment_orders o
                   ON o.id = (
@@ -44,6 +45,25 @@ final class AppointmentRepository
         $stmt->execute();
 
         return $stmt->fetchAll();
+    }
+
+    public function getBookedSlots(): array
+    {
+        $sql = "SELECT preferred_date, preferred_time FROM appointment_bookings WHERE payment_status = 'payment_verified' AND preferred_date >= CURRENT_DATE";
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll();
+        
+        $slots = [];
+        foreach ($results as $row) {
+            $date = (string) $row['preferred_date'];
+            $time = (string) $row['preferred_time'];
+            if (!isset($slots[$date])) {
+                $slots[$date] = [];
+            }
+            $slots[$date][] = $time;
+        }
+        return $slots;
     }
 
     /**
@@ -149,6 +169,20 @@ final class AppointmentRepository
             'SELECT * FROM appointment_bookings WHERE booking_reference = :booking_reference LIMIT 1'
         );
         $stmt->execute([':booking_reference' => $reference]);
+        $row = $stmt->fetch();
+
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findById(int $id): ?array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT * FROM appointment_bookings WHERE id = :id LIMIT 1'
+        );
+        $stmt->execute([':id' => $id]);
         $row = $stmt->fetch();
 
         return $row === false ? null : $row;

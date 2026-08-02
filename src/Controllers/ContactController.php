@@ -30,8 +30,11 @@ final class ContactController
         $email = trim((string) ($_POST['email'] ?? ''));
         $phone = trim((string) ($_POST['phone'] ?? ''));
         $message = trim((string) ($_POST['message'] ?? ''));
+        if ($message === '') {
+            $message = 'Enquiry from WhatsApp redirection';
+        }
 
-        if ($name === '' || $email === '' || $phone === '' || $message === '') {
+        if ($name === '' || $email === '' || $phone === '') {
             $this->form(null, 'All fields are required. Please complete the form and try again.');
             return;
         }
@@ -51,15 +54,7 @@ final class ContactController
 
         $emailSent = MailService::sendContactNotification($name, $email, $phone, $message);
 
-        if ($emailSent) {
-            $this->form('Thank you! We received your message and will get back to you shortly.');
-            return;
-        }
-
-        $this->form(
-            'Thank you! We received your message and will get back to you shortly.',
-            null,
-            'Your request was saved, but email notification is currently delayed. We are monitoring this.'
-        );
+        $whatsappGroup = \FCW\Core\Config::contact()['WHATSAPP_GROUP'] ?? '#';
+        \FCW\Core\View::redirect($whatsappGroup);
     }
 }

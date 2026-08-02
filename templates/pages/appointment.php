@@ -75,3 +75,36 @@ $minDate = date('Y-m-d');
         </div>
     </div>
 </section>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const bookedSlots = <?= json_encode($bookedSlots ?? []) ?>;
+        const dateInput = document.getElementById('preferred_date');
+        const timeSelect = document.getElementById('preferred_time');
+        const allOptions = Array.from(timeSelect.options);
+
+        function updateAvailableSlots() {
+            const selectedDate = dateInput.value;
+            const bookedForDate = bookedSlots[selectedDate] || [];
+
+            allOptions.forEach(option => {
+                if (option.value === "") return;
+                
+                if (bookedForDate.includes(option.value)) {
+                    option.style.display = 'none';
+                    option.disabled = true;
+                    if (timeSelect.value === option.value) {
+                        timeSelect.value = "";
+                    }
+                } else {
+                    option.style.display = '';
+                    option.disabled = false;
+                }
+            });
+        }
+
+        dateInput.addEventListener('change', updateAvailableSlots);
+        if (dateInput.value) {
+            updateAvailableSlots();
+        }
+    });
+</script>

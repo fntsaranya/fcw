@@ -2,7 +2,21 @@
     <div class="container">
         <div class="glass-card" style="max-width: 800px; margin: 0 auto;">
             <h2 style="text-align: center; color: var(--primary-color); margin-bottom: 1rem;">Register for Enquiry</h2>
-            <p style="text-align: center; margin-bottom: 2rem;">Have a question first? Share your details and we will connect with you.</p>
+            <p style="text-align: center; margin-bottom: 2rem;">
+🦋 <strong>FREE LIVE WEBINAR</strong><br><br>
+
+<strong>Is Your Thyroid Condition Autoimmune?</strong><br><br>
+
+Join our <strong>FREE 3-hour live webinar</strong> to learn how nutrition, gut health, inflammation, stress, and lifestyle habits can influence thyroid health. You'll gain practical, evidence-informed strategies to better understand and support your thyroid.<br><br>
+
+📅 <strong>Date:</strong> Sunday, 16th August<br>
+🕙 <strong>Time:</strong> 10:00 AM – 1:00 PM<br>
+🎓 <strong>Speaker:</strong> Saranya Mohan, Functional Clinical Nutritionist<br>
+💻 <strong>Mode:</strong> Live Online<br>
+💚 <strong>Registration:</strong> FREE (Limited Seats)<br><br>
+
+<strong>Reserve your seat today!</strong>
+</p>
 
             <?php if (!empty($successMessage)): ?>
                 <div style="background: rgba(45, 106, 79, 0.1); color: var(--primary-color); padding: 1rem; border-radius: 10px; margin-bottom: 2rem; text-align: center; border: 1px solid var(--primary-color);">
@@ -22,7 +36,7 @@
                 </div>
             <?php endif; ?>
 
-            <form action="/enquiry" method="post" style="display: grid; gap: 1.5rem;">
+            <form action="/enquiry" method="post" target="_blank" onsubmit="setTimeout(() => { this.reset(); alert('Thank you! Your registration has been received. You are now being redirected to our WhatsApp group in a new tab.'); }, 500);" style="display: grid; gap: 1.5rem;">
                 <div style="text-align: left;">
                     <label for="name" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Full Name</label>
                     <input type="text" id="name" name="name" required style="width: 100%; padding: 1rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.8); font-family: var(--font-body);">
@@ -39,12 +53,8 @@
                     </div>
                 </div>
 
-                <div style="text-align: left;">
-                    <label for="message" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">How can we help you?</label>
-                    <textarea id="message" name="message" rows="5" required style="width: 100%; padding: 1rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.8); font-family: var(--font-body);"></textarea>
-                </div>
 
-                <button type="submit" class="btn-primary" style="font-size: 1.1rem; padding: 1rem; margin-top: 1rem; width: 100%;">Register Enquiry</button>
+                <button type="submit" class="btn-primary" style="font-size: 1.1rem; padding: 1rem; margin-top: 1rem; width: 100%;">Register</button>
             </form>
 
             <div style="margin-top: 1.5rem; text-align: center;">

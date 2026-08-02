@@ -54,14 +54,17 @@ This is a full PHP migration of the original FastAPI project for Hostinger share
 ## Local Setup
 
 1. Copy env template:
+
    ```bash
    cp .env.example .env
    ```
 2. Fill `.env` values (database, pin, smtp, appointment fee, and Razorpay settings).
    For local testing without MySQL/PostgreSQL credentials, use:
+
    ```bash
    DATABASE_URL=sqlite://storage/fcw-local.sqlite
    ```
+
    Razorpay Checkout requires these values from the Razorpay dashboard:
    ```bash
    RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxxxx
@@ -69,10 +72,12 @@ This is a full PHP migration of the original FastAPI project for Hostinger share
    RAZORPAY_WEBHOOK_SECRET=your-razorpay-webhook-secret
    ```
 3. Install dependencies:
+
    ```bash
    composer install --no-dev --optimize-autoloader
    ```
 4. Serve locally with your preferred PHP server:
+
    ```bash
    php -S localhost:8000
    ```
@@ -101,6 +106,3 @@ See: `HOSTINGER_SHARED_PLAN_DEPLOYMENT.md`
 Ready clean upload bundle for Hostinger:
 
 - `fcw_php_hostinger_release_*.zip` (latest version in project root)
-
-
-
