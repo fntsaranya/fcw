@@ -7,7 +7,7 @@ $minDate = date('Y-m-d');
 <section class="hero-section" style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 4rem 1rem;">
     <div class="container">
         <div class="glass-card" style="max-width: 860px; margin: 0 auto;">
-            <h2 style="text-align: center; color: var(--primary-color); margin-bottom: 0.8rem;">Book Consultation Appointment</h2>
+            <h2 style="text-align: center; color: var(--primary-color); margin-bottom: 0.8rem;">Book Appointment</h2>
 
             <div style="background: rgba(45, 106, 79, 0.08); border: 1px solid rgba(45, 106, 79, 0.25); border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; text-align: center;">
                 <strong>Consultation Fee: INR <?= e($feeInr) ?></strong>
