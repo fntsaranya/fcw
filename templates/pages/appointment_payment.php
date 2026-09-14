@@ -431,6 +431,14 @@ $paymentComplete = in_array(
                 razorpay_signature: response.razorpay_signature
             });
 
+            if (typeof window.fbq === 'function') {
+                window.fbq('track', 'Purchase', {
+                    value: <?= json_encode((float) ($booking['fee_inr'] ?? 500)) ?>,
+                    currency: 'INR',
+                    content_name: 'Consultation Appointment'
+                });
+            }
+
             setStatus(data.payment_status, data.detail, response.razorpay_payment_id);
             showMessage('success', data.detail || 'Payment confirmation is processing.');
         }

@@ -1,6 +1,6 @@
 <?php
 $zip = new ZipArchive();
-if ($zip->open('fcw_php_hostinger_release_v27.zip', ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+if ($zip->open('fcw_php_hostinger_release_v30.zip', ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
     die("Cannot create zip file");
 }
 

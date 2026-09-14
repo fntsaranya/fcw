@@ -11,7 +11,7 @@ final class ContactRepository
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function all(int $limit = 100): array
+    public function all(int $limit = 5000): array
     {
         $sql = 'SELECT * FROM contact_submissions ORDER BY created_at DESC LIMIT :limit';
         $stmt = Database::connection()->prepare($sql);

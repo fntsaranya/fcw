@@ -9,6 +9,8 @@ use FCW\Repositories\AssessmentRepository;
 use FCW\Repositories\AppointmentRepository;
 use FCW\Repositories\BlogRepository;
 use FCW\Repositories\ContactRepository;
+use FCW\Repositories\EnquiryRegistrationRepository;
+use FCW\Repositories\WebinarRepository;
 use FCW\Services\AdminAuth;
 use FCW\Services\AssessmentCatalog;
 use FCW\Services\AssessmentScoringService;
@@ -21,7 +23,9 @@ final class AdminController
         private readonly ContactRepository $contacts = new ContactRepository(),
         private readonly AssessmentRepository $assessments = new AssessmentRepository(),
         private readonly BlogRepository $blogs = new BlogRepository(),
-        private readonly AppointmentRepository $appointments = new AppointmentRepository()
+        private readonly AppointmentRepository $appointments = new AppointmentRepository(),
+        private readonly WebinarRepository $webinars = new WebinarRepository(),
+        private readonly EnquiryRegistrationRepository $enquiryRegistrations = new EnquiryRegistrationRepository()
     ) {
     }
 
@@ -36,6 +40,8 @@ final class AdminController
         $assessments = [];
         $blogs = [];
         $appointments = [];
+        $enquiryRegistrations = [];
+        $activeWebinar = [];
         $failedSections = [];
 
         try {
@@ -43,6 +49,20 @@ final class AdminController
         } catch (Throwable $exception) {
             $failedSections[] = 'contacts';
             error_log('Admin contacts load error: ' . $exception->getMessage());
+        }
+
+        try {
+            $enquiryRegistrations = $this->enquiryRegistrations->all();
+        } catch (Throwable $exception) {
+            $failedSections[] = 'enquiry registrations';
+            error_log('Admin enquiry registrations load error: ' . $exception->getMessage());
+        }
+
+        try {
+            $activeWebinar = $this->webinars->getActive();
+        } catch (Throwable $exception) {
+            $failedSections[] = 'webinar details';
+            error_log('Admin active webinar load error: ' . $exception->getMessage());
         }
 
         try {
@@ -78,10 +98,13 @@ final class AdminController
             'activePage' => '',
             'activeTab' => $activeTab,
             'contacts' => $contacts,
+            'enquiryRegistrations' => $enquiryRegistrations,
+            'activeWebinar' => $activeWebinar,
             'assessments' => $assessments,
             'blogs' => $blogs,
             'appointments' => $appointments,
-            'totalContacts' => count($contacts),
+            'totalContacts' => count($contacts) + count($enquiryRegistrations),
+            'totalEnquiries' => count($enquiryRegistrations),
             'totalAssessments' => count($assessments),
             'totalBlogs' => count($blogs),
             'totalAppointments' => count($appointments),
@@ -544,5 +567,113 @@ final class AdminController
             echo "Error updating intake form: " . htmlspecialchars($e->getMessage());
             exit;
         }
+    }
+
+    public function updateWebinar(): void
+    {
+        if (!$this->isPinValid((string) ($_POST['pin'] ?? ''))) {
+            Flash::add('error', 'Invalid Admin PIN');
+            View::redirect('/admin/contacts?tab=contacts');
+        }
+
+        $title = trim((string) ($_POST['title'] ?? ''));
+        $subtitle = trim((string) ($_POST['subtitle'] ?? ''));
+        $description = trim((string) ($_POST['description'] ?? ''));
+        $eventDate = trim((string) ($_POST['event_date'] ?? ''));
+        $eventTime = trim((string) ($_POST['event_time'] ?? ''));
+        $venuePlatform = trim((string) ($_POST['venue_platform'] ?? 'Live Online'));
+        $speaker = trim((string) ($_POST['speaker'] ?? ''));
+        $feeInr = (float) ($_POST['fee_inr'] ?? 0.00);
+        $whatsappGroupLink = trim((string) ($_POST['whatsapp_group_link'] ?? ''));
+        $existingImageUrl = trim((string) ($_POST['existing_image_url'] ?? ''));
+        $imageUrl = trim((string) ($_POST['image_url'] ?? '')) ?: $existingImageUrl;
+
+        if ($title === '' || $description === '') {
+            Flash::add('error', 'Webinar title and description are required.');
+            View::redirect('/admin/contacts?tab=contacts');
+        }
+
+        // Handle promotional banner image upload
+        if (isset($_FILES['banner_image']) && is_array($_FILES['banner_image']) && ($_FILES['banner_image']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+            $file = $_FILES['banner_image'];
+            $maxBytes = 5 * 1024 * 1024; // 5 MB
+            if ((int) $file['size'] > $maxBytes) {
+                Flash::add('error', 'Promotional image size must be less than 5 MB.');
+                View::redirect('/admin/contacts?tab=contacts');
+            }
+
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/jpg'];
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = $finfo ? finfo_file($finfo, (string) $file['tmp_name']) : '';
+            if ($finfo) {
+                finfo_close($finfo);
+            }
+
+            if (!in_array($mime, $allowedMimes, true)) {
+                Flash::add('error', 'Invalid image format. Allowed formats: JPG, PNG, WEBP, GIF.');
+                View::redirect('/admin/contacts?tab=contacts');
+            }
+
+            $uploadDir = BASE_PATH . '/static/images/webinars';
+            if (!is_dir($uploadDir)) {
+                @mkdir($uploadDir, 0777, true);
+            }
+
+            $ext = match ($mime) {
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+                'image/gif' => 'gif',
+                default => 'jpg',
+            };
+
+            $filename = 'webinar_' . date('Ymd_His') . '_' . bin2hex(random_bytes(3)) . '.' . $ext;
+            $destination = $uploadDir . '/' . $filename;
+
+            if (move_uploaded_file((string) $file['tmp_name'], $destination)) {
+                $imageUrl = '/static/images/webinars/' . $filename;
+            } else {
+                error_log('Failed to move uploaded webinar image to ' . $destination);
+            }
+        }
+
+        try {
+            $this->webinars->saveOrUpdateActive([
+                'title' => $title,
+                'subtitle' => $subtitle,
+                'description' => $description,
+                'event_date' => $eventDate,
+                'event_time' => $eventTime,
+                'venue_platform' => $venuePlatform,
+                'speaker' => $speaker,
+                'fee_inr' => $feeInr,
+                'whatsapp_group_link' => $whatsappGroupLink,
+                'image_url' => $imageUrl,
+            ]);
+
+            Flash::add('success', 'Webinar details and promotional banner updated successfully.');
+        } catch (Throwable $exception) {
+            error_log('Update webinar error: ' . $exception->getMessage());
+            Flash::add('error', 'Failed to update webinar details: ' . $exception->getMessage());
+        }
+
+        View::redirect('/admin/contacts?tab=contacts');
+    }
+
+    public function deleteEnquiry(int $enquiryId): void
+    {
+        if (!$this->isPinValid((string) ($_POST['pin'] ?? ''))) {
+            Flash::add('error', 'Invalid Admin PIN');
+            View::redirect('/admin/contacts?tab=contacts');
+        }
+
+        try {
+            $this->enquiryRegistrations->delete($enquiryId);
+            Flash::add('success', 'Enquiry / Webinar registration record deleted successfully.');
+        } catch (Throwable $exception) {
+            error_log('Delete enquiry error: ' . $exception->getMessage());
+            Flash::add('error', 'Unable to delete registration at the moment.');
+        }
+
+        View::redirect('/admin/contacts?tab=contacts');
     }
 }

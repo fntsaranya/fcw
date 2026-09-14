@@ -9,9 +9,6 @@ $minDate = date('Y-m-d');
         <div class="glass-card" style="max-width: 860px; margin: 0 auto;">
             <h2 style="text-align: center; color: var(--primary-color); margin-bottom: 0.8rem;">Book Appointment</h2>
 
-            <div style="background: rgba(45, 106, 79, 0.08); border: 1px solid rgba(45, 106, 79, 0.25); border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; text-align: center;">
-                <strong>Consultation Fee: INR <?= e($feeInr) ?></strong>
-            </div>
 
             <?php if (!empty($errorMessage)): ?>
                 <div style="background: rgba(220, 53, 69, 0.1); color: #dc3545; padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; text-align: center; border: 1px solid #dc3545;">

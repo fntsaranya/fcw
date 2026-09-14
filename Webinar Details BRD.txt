@@ -1,0 +1,54 @@
+### Webinar Details – Admin Management
+
+On the **Register for Enquiry** page, the webinar details should be editable and manageable by the admin. The admin should have the following provisions:
+
+* Add and edit the webinar title, description, date, time, venue/platform, and other relevant webinar details.
+* Upload a **webinar advertising/promotional image**.
+* The uploaded image and webinar content should be dynamically displayed on the **Register for Enquiry** page.
+
+### Enquiry Registration and Payment Flow
+
+When the user clicks the **Register** button on the Register for Enquiry page:
+
+1. The user should be redirected to a dedicated **Payment Window** for the webinar/enquiry registration.
+2. This payment setup should be **separate from the existing Book Appointment payment setup** and must not affect or modify the current Book Appointment payment functionality.
+3. The enquiry registration payment window should have its own configurable payment amount.
+4. The user should complete the payment before proceeding further.
+5. Only after the payment is successfully completed should the user be redirected to the designated **WhatsApp Group** joining link.
+6. If the payment fails or is cancelled, the user should not be redirected to the WhatsApp Group.Giving a short display of the reason for the failure or any cancel message and return to registration page again to try again.
+
+### Registration and Payment Data Management
+
+The registration and payment information of each user should be stored in the SQL database in separate table.
+
+The existing **Contact List** table used in the Admin Data Manager should be enhanced with the necessary columns to clearly track both registration and payment information.
+
+The database should maintain, as applicable:
+
+* Webinar/enquiry registration details
+* User/contact details
+* Registration date and time
+* Webinar details or webinar ID/reference
+* Payment amount
+* Payment transaction/order/reference ID
+* Payment status (Pending / Success / Failed / Cancelled)
+* Payment date and time
+* Registration status
+* WhatsApp Group redirection/join status, where applicable
+
+### Admin Data Manager
+
+The registered users and their corresponding payment details should be visible to the admin through the existing **Admin Data Manager → Contact List**.
+
+The admin should be able to clearly identify:
+
+* Who registered for the webinar
+* Which webinar the user registered for
+* Registration date/time
+* Payment amount
+* Payment transaction/reference details
+* Current payment status
+* Registration status
+* Other relevant enquiry/payment information
+
+The implementation should ensure that the **existing Book Appointment payment window and its configuration remain completely unaffected**, while providing a separate and independently manageable payment flow for webinar/enquiry registrations.

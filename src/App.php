@@ -37,6 +37,7 @@ final class App
         $admin = new AdminController();
         $health = new HealthController();
         $patientIntake = new \FCW\Controllers\PatientIntakeController();
+        $enquiryPayment = new \FCW\Controllers\EnquiryPaymentController();
 
         if ($method === 'GET' && $path === '/') {
             $pages->home();
@@ -75,6 +76,26 @@ final class App
 
         if ($method === 'POST' && $path === '/enquiry') {
             $contact->submit();
+            return;
+        }
+
+        if ($method === 'GET' && $path === '/enquiry/payment') {
+            $enquiryPayment->paymentPage();
+            return;
+        }
+
+        if ($method === 'POST' && $path === '/api/enquiry-payments/order') {
+            $enquiryPayment->createPaymentOrderApi();
+            return;
+        }
+
+        if ($method === 'POST' && $path === '/api/enquiry-payments/verify') {
+            $enquiryPayment->verifyPaymentApi();
+            return;
+        }
+
+        if ($method === 'POST' && $path === '/api/enquiry-payments/failure') {
+            $enquiryPayment->paymentFailureApi();
             return;
         }
 
@@ -225,6 +246,16 @@ final class App
 
         if ($method === 'POST' && preg_match('#^/admin/appointments/intake/update/(\d+)$#', $path, $matches) === 1) {
             $admin->updateIntake((int) $matches[1]);
+            return;
+        }
+
+        if ($method === 'POST' && $path === '/admin/webinar/update') {
+            $admin->updateWebinar();
+            return;
+        }
+
+        if ($method === 'POST' && preg_match('#^/admin/enquiries/delete/(\d+)$#', $path, $matches) === 1) {
+            $admin->deleteEnquiry((int) $matches[1]);
             return;
         }
 

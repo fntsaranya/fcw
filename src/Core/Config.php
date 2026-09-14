@@ -62,7 +62,7 @@ final class Config
         return [
             'razorpay_mode' => $mode,
             'razorpay_mode_label' => ucfirst($mode) . ' Mode',
-            'fee_inr' => (string) env('APPOINTMENT_FEE_INR', '499.00'),
+            'fee_inr' => (string) env('APPOINTMENT_FEE_INR', '0.00'),
             'currency' => 'INR',
             'razorpay_key_id' => self::razorpayEnvValue($mode, 'KEY_ID', 'RAZORPAY_KEY_ID'),
             'razorpay_key_secret' => self::razorpayEnvValue($mode, 'KEY_SECRET', 'RAZORPAY_KEY_SECRET'),
@@ -72,6 +72,29 @@ final class Config
             'checkout_description' => (string) env('RAZORPAY_CHECKOUT_DESCRIPTION', 'Consultation Appointment'),
             'checkout_theme_color' => (string) env('RAZORPAY_CHECKOUT_THEME_COLOR', '#2d6a4f'),
         ];
+    }
+
+    public static function enquiryPayment(): array
+    {
+        $mode = self::razorpayMode();
+        return [
+            'razorpay_mode' => $mode,
+            'razorpay_mode_label' => ucfirst($mode) . ' Mode',
+            'fee_inr' => (string) env('WEBINAR_FEE_INR', env('ENQUIRY_FEE_INR', '0.00')),
+            'currency' => 'INR',
+            'razorpay_key_id' => self::razorpayEnvValue($mode, 'KEY_ID', 'RAZORPAY_KEY_ID'),
+            'razorpay_key_secret' => self::razorpayEnvValue($mode, 'KEY_SECRET', 'RAZORPAY_KEY_SECRET'),
+            'razorpay_webhook_secret' => self::razorpayEnvValue($mode, 'WEBHOOK_SECRET', 'RAZORPAY_WEBHOOK_SECRET'),
+            'razorpay_curl_cainfo' => (string) env('RAZORPAY_CURL_CAINFO', ''),
+            'checkout_name' => (string) env('WEBINAR_CHECKOUT_NAME', (string) env('RAZORPAY_CHECKOUT_NAME', self::appName())),
+            'checkout_description' => (string) env('WEBINAR_CHECKOUT_DESCRIPTION', 'Webinar Registration'),
+            'checkout_theme_color' => (string) env('WEBINAR_CHECKOUT_THEME_COLOR', (string) env('RAZORPAY_CHECKOUT_THEME_COLOR', '#2d6a4f')),
+        ];
+    }
+
+    public static function metaPixelId(): string
+    {
+        return trim((string) env('META_PIXEL_ID', '1063371403330539'));
     }
 
     public static function dbPoolSize(): int

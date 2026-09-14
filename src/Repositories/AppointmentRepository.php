@@ -13,38 +13,49 @@ final class AppointmentRepository
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function all(int $limit = 200): array
+    public function all(int $limit = 5000): array
     {
-        $sql = 'SELECT b.*,
-                       o.gateway_order_id,
-                       o.status AS gateway_order_status,
-                       t.gateway_payment_id,
-                       t.status AS gateway_payment_status,
-                       t.method AS gateway_method,
-                       t.checkout_signature_verified,
-                       t.error_description AS gateway_error_description,
-                       t.updated_at AS gateway_updated_at,
-                       (SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END FROM patient_intake_forms pif WHERE pif.appointment_id = b.id) as has_intake_form
-                FROM appointment_bookings b
-                LEFT JOIN appointment_payment_orders o
-                  ON o.id = (
-                      SELECT MAX(o2.id)
-                      FROM appointment_payment_orders o2
-                      WHERE o2.appointment_id = b.id
-                  )
-                LEFT JOIN appointment_payment_transactions t
-                  ON t.id = (
-                      SELECT MAX(t2.id)
-                      FROM appointment_payment_transactions t2
-                      WHERE t2.payment_order_id = o.id
-                  )
-                ORDER BY b.created_at DESC
-                LIMIT :limit';
-        $stmt = Database::connection()->prepare($sql);
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->execute();
+        try {
+            $sql = 'SELECT b.*,
+                           o.gateway_order_id,
+                           o.status AS gateway_order_status,
+                           t.gateway_payment_id,
+                           t.status AS gateway_payment_status,
+                           t.method AS gateway_method,
+                           t.checkout_signature_verified,
+                           t.error_description AS gateway_error_description,
+                           t.updated_at AS gateway_updated_at,
+                           (SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END FROM patient_intake_forms pif WHERE pif.appointment_id = b.id) as has_intake_form
+                    FROM appointment_bookings b
+                    LEFT JOIN appointment_payment_orders o
+                      ON o.id = (
+                          SELECT MAX(o2.id)
+                          FROM appointment_payment_orders o2
+                          WHERE o2.appointment_id = b.id
+                      )
+                    LEFT JOIN appointment_payment_transactions t
+                      ON t.id = (
+                          SELECT MAX(t2.id)
+                          FROM appointment_payment_transactions t2
+                          WHERE t2.payment_order_id = o.id
+                      )
+                    ORDER BY b.created_at DESC
+                    LIMIT :limit';
+            $stmt = Database::connection()->prepare($sql);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
 
-        return $stmt->fetchAll();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable $e) {
+            error_log('AppointmentRepository all() primary query error: ' . $e->getMessage());
+            try {
+                $stmt = Database::connection()->query('SELECT *, (SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END FROM patient_intake_forms pif WHERE pif.appointment_id = appointment_bookings.id) as has_intake_form FROM appointment_bookings ORDER BY id DESC LIMIT 5000');
+                return $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+            } catch (\Throwable $e2) {
+                error_log('AppointmentRepository all() fallback query error: ' . $e2->getMessage());
+                return [];
+            }
+        }
     }
 
     public function getBookedSlots(): array
