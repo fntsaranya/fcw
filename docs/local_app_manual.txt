@@ -1,0 +1,47 @@
+Step-by-Step Instructions to Run Locally
+1. Open Terminal or PowerShell
+Open PowerShell or Command Prompt and navigate to your project directory:
+
+powershell
+
+
+cd c:\my_app\fcw
+2. Start the Local Server
+Run the following command:
+
+powershell
+
+
+php -S localhost:8000 router.php
+You will see output similar to:
+
+text
+
+
+[PHP Development Server (http://localhost:8000) started]
+Why router.php?
+router.php ensures clean URL routing (e.g. /, /about, /services, /enquiry) works properly while simultaneously serving CSS, images, and fonts without needing an Apache or Nginx setup.
+
+3. View in Your Browser
+Open your web browser (Chrome, Edge, Firefox, etc.) and visit:
+
+text
+
+
+http://localhost:8000
+Home Page: http://localhost:8000 (Scroll down to check out the new Patient Journeys testimonial cards)
+About Us: http://localhost:8000/about
+Services & Programs: http://localhost:8000/services
+Resources: http://localhost:8000/resources
+Register for Enquiry / Webinar: http://localhost:8000/enquiry
+Book Appointment: http://localhost:8000/contact
+4. Live Updates While Developing
+Whenever you edit any file (such as templates/pages/home.php), simply press F5 (or Ctrl + R) in your browser. The changes will update immediately.
+
+5. Stop the Server
+When you are done testing, go back to your terminal window and press:
+
+text
+
+
+Ctrl + C

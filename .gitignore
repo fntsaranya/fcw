@@ -19,3 +19,6 @@ storage/cacert.pem
 #local files:
 install_dompdf.ps1
 composer.phar
+
+#zip files
+*.zip

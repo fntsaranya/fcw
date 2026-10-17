@@ -8,11 +8,9 @@ use PDO;
 
 final class PatientIntakeRepository
 {
-    private PDO $pdo;
-
-    public function __construct()
+    private function pdo(): PDO
     {
-        $this->pdo = Database::connection();
+        return Database::connection();
     }
 
     public function create(
@@ -52,7 +50,7 @@ final class PatientIntakeRepository
         ?array $specificQuestions,
         ?array $medications
     ): void {
-        $stmt = $this->pdo->prepare('
+        $stmt = $this->pdo()->prepare('
             INSERT INTO patient_intake_forms (
                 appointment_id, patient_name, form_date, age, sex, 
                 address, surrounding_area, occupation, dietary_preference, covid_vaccination,
@@ -157,7 +155,7 @@ final class PatientIntakeRepository
         $boolType = $driver === 'postgres' ? PDO::PARAM_BOOL : PDO::PARAM_INT;
         $sleepRegularVal = $driver === 'postgres' ? $sleepRegular : ($sleepRegular ? 1 : 0);
 
-        $stmt = $this->pdo->prepare('
+        $stmt = $this->pdo()->prepare('
             UPDATE patient_intake_forms SET
                 patient_name = :patient_name, form_date = :form_date, age = :age, sex = :sex, 
                 address = :address, surrounding_area = :surrounding_area, occupation = :occupation, dietary_preference = :dietary_preference, covid_vaccination = :covid_vaccination,
@@ -269,7 +267,7 @@ final class PatientIntakeRepository
 
     public function findByAppointmentId(int $appointmentId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM patient_intake_forms WHERE appointment_id = :appointment_id LIMIT 1');
+        $stmt = $this->pdo()->prepare('SELECT * FROM patient_intake_forms WHERE appointment_id = :appointment_id LIMIT 1');
         $stmt->bindValue(':appointment_id', $appointmentId, PDO::PARAM_INT);
         $stmt->execute();
         
