@@ -5,6 +5,7 @@ namespace FCW\Controllers;
 
 use FCW\Core\Config;
 use FCW\Core\View;
+use FCW\Repositories\AppointmentAvailabilityRepository;
 use FCW\Repositories\AppointmentPaymentRepository;
 use FCW\Repositories\AppointmentRepository;
 use FCW\Services\RazorpayService;
@@ -17,6 +18,7 @@ final class AppointmentController
     public function __construct(
         private readonly AppointmentRepository $appointments = new AppointmentRepository(),
         private readonly AppointmentPaymentRepository $payments = new AppointmentPaymentRepository(),
+        private readonly AppointmentAvailabilityRepository $availability = new AppointmentAvailabilityRepository(),
         private readonly RazorpayService $razorpay = new RazorpayService()
     ) {
     }
@@ -26,12 +28,24 @@ final class AppointmentController
      */
     public function form(array $oldInput = [], ?string $errorMessage = null): void
     {
+        $disabledData = $this->availability->getDisabledForBooking();
+
+        if (empty($oldInput['concern'])) {
+            $getConcern = trim((string) ($_GET['concern'] ?? $_GET['focus'] ?? ''));
+            if ($getConcern !== '') {
+                $oldInput['concern'] = $getConcern;
+            }
+        }
+
         View::render('pages/appointment', [
             'activePage' => 'contact',
             'paymentConfig' => Config::appointmentPayment(),
             'oldInput' => $oldInput,
             'errorMessage' => $errorMessage,
             'bookedSlots' => $this->appointments->getBookedSlots(),
+            'disabledDates' => $disabledData['disabled_dates'],
+            'disabledSlots' => $disabledData['disabled_slots'],
+            'availableSlots' => AppointmentAvailabilityRepository::DEFAULT_SLOTS,
         ]);
     }
 
@@ -66,6 +80,12 @@ final class AppointmentController
         $normalizedDate = $this->validatePreferredDate($preferredDate);
         if ($normalizedDate === null) {
             $this->form($oldInput, 'Please choose a valid preferred date (today or future).');
+            return;
+        }
+
+        $bookedSlots = $this->appointments->getBookedSlots();
+        if (!$this->availability->isSlotAvailable($normalizedDate, $preferredTime === '' ? null : $preferredTime, $bookedSlots)) {
+            $this->form($oldInput, 'The selected date or time slot is not available. Please choose another date or time slot.');
             return;
         }
 

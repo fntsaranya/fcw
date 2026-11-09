@@ -9,6 +9,10 @@ $pageTitle = $pageTitle ?? 'Functional Chronic Wellness';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageTitle) ?></title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/webp" href="<?= e(asset('images/logo.webp')) ?>">
+    <link rel="shortcut icon" type="image/webp" href="<?= e(asset('images/logo.webp')) ?>">
+    <link rel="apple-touch-icon" href="<?= e(asset('images/logo.webp')) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
@@ -47,9 +51,10 @@ $pageTitle = $pageTitle ?? 'Functional Chronic Wellness';
                 <li><a href="/" class="<?= $activePage === 'home' ? 'active' : '' ?>">Home</a></li>
                 <li><a href="/about" class="<?= $activePage === 'about' ? 'active' : '' ?>">About</a></li>
                 <li><a href="/services" class="<?= $activePage === 'services' ? 'active' : '' ?>">Services & Programs</a></li>
-                <li><a href="/resources" class="<?= $activePage === 'resources' ? 'active' : '' ?>">Resources</a></li>
                 <li><a href="/blogs" class="<?= $activePage === 'blogs' ? 'active' : '' ?>">Blogs</a></li>
-                <li><a href="/enquiry" class="<?= $activePage === 'enquiry' ? 'active' : '' ?>">Register for Enquiry</a></li>
+                <?php if (!empty($isEnquiryActive)): ?>
+                    <li><a href="/enquiry" class="<?= $activePage === 'enquiry' ? 'active' : '' ?>">Register for Enquiry</a></li>
+                <?php endif; ?>
                 <li><a href="/contact" class="btn-primary <?= $activePage === 'contact' ? 'active' : '' ?>">Book Appointment</a></li>
             </ul>
             <button type="button" class="hamburger" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="primaryNav">
@@ -89,7 +94,9 @@ $pageTitle = $pageTitle ?? 'Functional Chronic Wellness';
                         <li><a href="/">Home</a></li>
                         <li><a href="/about">About Us</a></li>
                         <li><a href="/services">Services</a></li>
-                        <li><a href="/enquiry">Register for Enquiry</a></li>
+                        <?php if (!empty($isEnquiryActive)): ?>
+                            <li><a href="/enquiry">Register for Enquiry</a></li>
+                        <?php endif; ?>
                         <li><a href="/contact">Book Appointment</a></li>
                     </ul>
                 </div>

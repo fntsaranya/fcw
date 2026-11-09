@@ -380,6 +380,14 @@ final class Database
             'CREATE INDEX IF NOT EXISTS idx_enquiry_reg_email ON enquiry_registrations(email)',
             'CREATE INDEX IF NOT EXISTS idx_enquiry_orders_reg ON enquiry_payment_orders(registration_id)',
             'CREATE INDEX IF NOT EXISTS idx_enquiry_trans_order ON enquiry_payment_transactions(payment_order_id)',
+            'CREATE TABLE IF NOT EXISTS appointment_availability_overrides (
+                id SERIAL PRIMARY KEY,
+                override_date DATE NOT NULL,
+                slot_time VARCHAR(50) NULL,
+                reason VARCHAR(255) NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )',
+            'CREATE INDEX IF NOT EXISTS idx_avail_override_date ON appointment_availability_overrides(override_date)',
         ];
     }
 
@@ -672,6 +680,14 @@ final class Database
                 INDEX idx_enquiry_payment_trans_order (payment_order_id),
                 INDEX idx_enquiry_payment_trans_status (status)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+            'CREATE TABLE IF NOT EXISTS appointment_availability_overrides (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                override_date DATE NOT NULL,
+                slot_time VARCHAR(50) NULL,
+                reason VARCHAR(255) NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_avail_override_date (override_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
         ];
     }
 
@@ -960,6 +976,14 @@ final class Database
             'CREATE INDEX IF NOT EXISTS idx_enquiry_reg_email ON enquiry_registrations(email)',
             'CREATE INDEX IF NOT EXISTS idx_enquiry_orders_reg ON enquiry_payment_orders(registration_id)',
             'CREATE INDEX IF NOT EXISTS idx_enquiry_trans_order ON enquiry_payment_transactions(payment_order_id)',
+            'CREATE TABLE IF NOT EXISTS appointment_availability_overrides (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                override_date TEXT NOT NULL,
+                slot_time TEXT NULL,
+                reason TEXT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )',
+            'CREATE INDEX IF NOT EXISTS idx_avail_override_date ON appointment_availability_overrides(override_date)',
         ];
     }
 

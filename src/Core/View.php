@@ -19,6 +19,7 @@ final class View
         $flashMessages = Flash::pullAll();
         $contact = Config::contact();
         $appName = Config::appName();
+        $isEnquiryActive = \FCW\Repositories\WebinarRepository::isRegistrationEnabled();
 
         extract($data, EXTR_SKIP);
 

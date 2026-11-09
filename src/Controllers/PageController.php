@@ -21,9 +21,4 @@ final class PageController
     {
         View::render('pages/services', ['activePage' => 'services']);
     }
-
-    public function resources(): void
-    {
-        View::render('pages/resources', ['activePage' => 'resources']);
-    }
 }

@@ -5,6 +5,7 @@ namespace FCW\Controllers;
 
 use FCW\Core\Flash;
 use FCW\Core\View;
+use FCW\Repositories\AppointmentAvailabilityRepository;
 use FCW\Repositories\AssessmentRepository;
 use FCW\Repositories\AppointmentRepository;
 use FCW\Repositories\BlogRepository;
@@ -24,6 +25,7 @@ final class AdminController
         private readonly AssessmentRepository $assessments = new AssessmentRepository(),
         private readonly BlogRepository $blogs = new BlogRepository(),
         private readonly AppointmentRepository $appointments = new AppointmentRepository(),
+        private readonly AppointmentAvailabilityRepository $availability = new AppointmentAvailabilityRepository(),
         private readonly WebinarRepository $webinars = new WebinarRepository(),
         private readonly EnquiryRegistrationRepository $enquiryRegistrations = new EnquiryRegistrationRepository()
     ) {
@@ -59,7 +61,7 @@ final class AdminController
         }
 
         try {
-            $activeWebinar = $this->webinars->getActive();
+            $activeWebinar = $this->webinars->getActive(true);
         } catch (Throwable $exception) {
             $failedSections[] = 'webinar details';
             error_log('Admin active webinar load error: ' . $exception->getMessage());
@@ -86,6 +88,14 @@ final class AdminController
             error_log('Admin appointments load error: ' . $exception->getMessage());
         }
 
+        $availabilityOverrides = [];
+        try {
+            $availabilityOverrides = $this->availability->allUpcoming();
+        } catch (Throwable $exception) {
+            $failedSections[] = 'availability overrides';
+            error_log('Admin availability overrides load error: ' . $exception->getMessage());
+        }
+
         $inlineErrorMessage = null;
         if (!empty($failedSections)) {
             $inlineErrorMessage = sprintf(
@@ -100,9 +110,12 @@ final class AdminController
             'contacts' => $contacts,
             'enquiryRegistrations' => $enquiryRegistrations,
             'activeWebinar' => $activeWebinar,
+            'isEnquiryEnabled' => WebinarRepository::isRegistrationEnabled(),
             'assessments' => $assessments,
             'blogs' => $blogs,
             'appointments' => $appointments,
+            'availabilityOverrides' => $availabilityOverrides,
+            'defaultSlots' => AppointmentAvailabilityRepository::DEFAULT_SLOTS,
             'totalContacts' => count($contacts) + count($enquiryRegistrations),
             'totalEnquiries' => count($enquiryRegistrations),
             'totalAssessments' => count($assessments),
@@ -637,7 +650,7 @@ final class AdminController
         }
 
         try {
-            $this->webinars->saveOrUpdateActive([
+            $webinarPayload = [
                 'title' => $title,
                 'subtitle' => $subtitle,
                 'description' => $description,
@@ -648,12 +661,38 @@ final class AdminController
                 'fee_inr' => $feeInr,
                 'whatsapp_group_link' => $whatsappGroupLink,
                 'image_url' => $imageUrl,
-            ]);
+            ];
+            if (isset($_POST['is_active'])) {
+                $webinarPayload['is_active'] = (int) $_POST['is_active'] === 1 ? 1 : 0;
+            }
+
+            $this->webinars->saveOrUpdateActive($webinarPayload);
 
             Flash::add('success', 'Webinar details and promotional banner updated successfully.');
         } catch (Throwable $exception) {
             error_log('Update webinar error: ' . $exception->getMessage());
             Flash::add('error', 'Failed to update webinar details: ' . $exception->getMessage());
+        }
+
+        View::redirect('/admin/contacts?tab=contacts');
+    }
+
+    public function toggleWebinarStatus(): void
+    {
+        if (!$this->isPinValid((string) ($_POST['pin'] ?? ''))) {
+            Flash::add('error', 'Invalid Admin PIN');
+            View::redirect('/admin/contacts?tab=contacts');
+        }
+
+        $newStatus = isset($_POST['is_active']) && (int) $_POST['is_active'] === 1;
+        try {
+            $this->webinars->setRegistrationStatus($newStatus);
+            Flash::add('success', $newStatus
+                ? 'Register for Enquiry page is now TURNED ON and publicly visible to users.'
+                : 'Register for Enquiry page is now TURNED OFF and hidden from users.');
+        } catch (Throwable $exception) {
+            error_log('Toggle webinar status error: ' . $exception->getMessage());
+            Flash::add('error', 'Failed to update registration status: ' . $exception->getMessage());
         }
 
         View::redirect('/admin/contacts?tab=contacts');
@@ -675,5 +714,66 @@ final class AdminController
         }
 
         View::redirect('/admin/contacts?tab=contacts');
+    }
+
+    public function addAvailabilityOverride(): void
+    {
+        if (!$this->isPinValid((string) ($_POST['pin'] ?? ''))) {
+            Flash::add('error', 'Invalid Admin PIN');
+            View::redirect('/admin/contacts?tab=appointments');
+        }
+
+        $date = trim((string) ($_POST['override_date'] ?? ''));
+        $scope = trim((string) ($_POST['override_scope'] ?? 'all'));
+        $selectedSlots = $_POST['slots'] ?? [];
+        $reason = trim((string) ($_POST['reason'] ?? ''));
+
+        if ($date === '') {
+            Flash::add('error', 'Please choose a valid date to block.');
+            View::redirect('/admin/contacts?tab=appointments');
+        }
+
+        // Validate date format and ensure it is not in past
+        $dateObj = \DateTimeImmutable::createFromFormat('Y-m-d', $date);
+        $today = new \DateTimeImmutable('today');
+        if ($dateObj === false || $dateObj->format('Y-m-d') !== $date || $dateObj < $today) {
+            Flash::add('error', 'Please choose a valid date (today or a future date).');
+            View::redirect('/admin/contacts?tab=appointments');
+        }
+
+        if ($scope === 'all' || empty($selectedSlots)) {
+            $this->availability->addOverride($date, null, $reason === '' ? 'Full Day Blocked' : $reason);
+            Flash::add('success', "Full day blocked successfully for {$date}.");
+        } else {
+            $count = 0;
+            foreach ((array) $selectedSlots as $slot) {
+                $slotStr = trim((string) $slot);
+                if ($slotStr !== '') {
+                    $this->availability->addOverride($date, $slotStr, $reason === '' ? 'Slot Blocked' : $reason);
+                    $count++;
+                }
+            }
+            Flash::add('success', "{$count} time slot(s) blocked successfully for {$date}.");
+        }
+
+        View::redirect('/admin/contacts?tab=appointments');
+    }
+
+    public function deleteAvailabilityOverride(int $id): void
+    {
+        if (!$this->isPinValid((string) ($_POST['pin'] ?? ''))) {
+            Flash::add('error', 'Invalid Admin PIN');
+            View::redirect('/admin/contacts?tab=appointments');
+        }
+
+        try {
+            $this->availability->deleteOverride($id);
+            Flash::add('success', 'Availability override removed. The date/slot is now open for appointment bookings.');
+        } catch (Throwable $exception) {
+            error_log('Delete availability override error: ' . $exception->getMessage());
+            Flash::add('error', 'Unable to remove availability override at this time.');
+        }
+
+        View::redirect('/admin/contacts?tab=appointments');
     }
 }

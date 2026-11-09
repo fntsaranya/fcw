@@ -60,21 +60,26 @@ final class AppointmentRepository
 
     public function getBookedSlots(): array
     {
-        $sql = "SELECT preferred_date, preferred_time FROM appointment_bookings WHERE payment_status = 'payment_verified' AND preferred_date >= CURRENT_DATE";
-        $stmt = Database::connection()->prepare($sql);
-        $stmt->execute();
-        $results = $stmt->fetchAll();
-        
-        $slots = [];
-        foreach ($results as $row) {
-            $date = (string) $row['preferred_date'];
-            $time = (string) $row['preferred_time'];
-            if (!isset($slots[$date])) {
-                $slots[$date] = [];
+        try {
+            $sql = "SELECT preferred_date, preferred_time FROM appointment_bookings WHERE payment_status = 'payment_verified' AND preferred_date >= CURRENT_DATE";
+            $stmt = Database::connection()->prepare($sql);
+            $stmt->execute();
+            $results = $stmt->fetchAll();
+            
+            $slots = [];
+            foreach ($results as $row) {
+                $date = (string) $row['preferred_date'];
+                $time = (string) $row['preferred_time'];
+                if (!isset($slots[$date])) {
+                    $slots[$date] = [];
+                }
+                $slots[$date][] = $time;
             }
-            $slots[$date][] = $time;
+            return $slots;
+        } catch (\Throwable $e) {
+            error_log('AppointmentRepository getBookedSlots error: ' . $e->getMessage());
+            return [];
         }
-        return $slots;
     }
 
     /**

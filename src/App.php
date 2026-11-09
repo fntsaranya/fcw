@@ -39,6 +39,16 @@ final class App
         $patientIntake = new \FCW\Controllers\PatientIntakeController();
         $enquiryPayment = new \FCW\Controllers\EnquiryPaymentController();
 
+        if ($method === 'GET' && ($path === '/favicon.ico' || $path === '/favicon.png' || $path === '/favicon.webp')) {
+            $iconFile = BASE_PATH . '/static/images/logo.webp';
+            if (is_file($iconFile)) {
+                header('Content-Type: image/webp');
+                header('Cache-Control: public, max-age=604800');
+                readfile($iconFile);
+                return;
+            }
+        }
+
         if ($method === 'GET' && $path === '/') {
             $pages->home();
             return;
@@ -55,16 +65,15 @@ final class App
         }
 
         if ($method === 'GET' && $path === '/resources') {
-            $pages->resources();
-            return;
+            View::redirect('/');
         }
 
-        if ($method === 'GET' && $path === '/contact') {
+        if ($method === 'GET' && ($path === '/contact' || $path === '/appointment')) {
             $appointment->form();
             return;
         }
 
-        if ($method === 'POST' && $path === '/contact') {
+        if ($method === 'POST' && ($path === '/contact' || $path === '/appointment')) {
             $appointment->create();
             return;
         }
@@ -249,8 +258,23 @@ final class App
             return;
         }
 
+        if ($method === 'POST' && $path === '/admin/availability/add') {
+            $admin->addAvailabilityOverride();
+            return;
+        }
+
+        if ($method === 'POST' && preg_match('#^/admin/availability/delete/(\d+)$#', $path, $matches) === 1) {
+            $admin->deleteAvailabilityOverride((int) $matches[1]);
+            return;
+        }
+
         if ($method === 'POST' && $path === '/admin/webinar/update') {
             $admin->updateWebinar();
+            return;
+        }
+
+        if ($method === 'POST' && $path === '/admin/webinar/toggle-status') {
+            $admin->toggleWebinarStatus();
             return;
         }
 

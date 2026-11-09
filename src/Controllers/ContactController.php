@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FCW\Controllers;
 
 use FCW\Core\Config;
+use FCW\Core\Flash;
 use FCW\Core\View;
 use FCW\Repositories\ContactRepository;
 use FCW\Repositories\EnquiryRegistrationRepository;
@@ -22,6 +23,11 @@ final class ContactController
 
     public function form(?string $successMessage = null, ?string $errorMessage = null, ?string $warningMessage = null): void
     {
+        if (!WebinarRepository::isRegistrationEnabled()) {
+            Flash::add('error', 'Workshop registrations are currently closed. Please check back when a new workshop is scheduled.');
+            View::redirect('/');
+        }
+
         $webinar = [];
         try {
             $webinar = $this->webinars->getActive();
@@ -40,6 +46,11 @@ final class ContactController
 
     public function submit(): void
     {
+        if (!WebinarRepository::isRegistrationEnabled()) {
+            Flash::add('error', 'Workshop registrations are currently closed.');
+            View::redirect('/');
+        }
+
         $name = trim((string) ($_POST['name'] ?? ''));
         $email = trim((string) ($_POST['email'] ?? ''));
         $phone = trim((string) ($_POST['phone'] ?? ''));

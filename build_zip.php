@@ -1,6 +1,6 @@
 <?php
 $zip = new ZipArchive();
-if ($zip->open('fcw_php_hostinger_release_v31.zip', ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+if ($zip->open('fcw_php_hostinger_release_v35.zip', ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
     die("Cannot create zip file");
 }
 
@@ -23,7 +23,7 @@ foreach ($dirs as $dir) {
     }
 }
 
-$files = ['.env', '.env.example', '.gitignore', '.htaccess', 'composer.json', 'composer.lock', 'HOSTINGER_SHARED_PLAN_DEPLOYMENT.md', 'index.php', 'LICENSE', 'README.md', 'update_db.php'];
+$files = ['.env', '.env.example', '.gitignore', '.htaccess', 'composer.json', 'composer.lock', 'favicon.ico', 'HOSTINGER_SHARED_PLAN_DEPLOYMENT.md', 'index.php', 'LICENSE', 'README.md', 'update_db.php'];
 foreach ($files as $file) {
     if (file_exists($file)) {
         $zip->addFile($file, $file);

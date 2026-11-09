@@ -8,15 +8,74 @@ use PDO;
 
 final class WebinarRepository
 {
+    private static ?bool $cachedIsActive = null;
+
+    /**
+     * Check whether public webinar/enquiry registration is currently active/enabled.
+     */
+    public static function isRegistrationEnabled(): bool
+    {
+        if (self::$cachedIsActive !== null) {
+            return self::$cachedIsActive;
+        }
+
+        try {
+            $pdo = Database::connection();
+            $stmt = $pdo->query('SELECT is_active FROM webinar_details ORDER BY id DESC LIMIT 1');
+            $row = $stmt ? $stmt->fetch() : false;
+            if ($row !== false && isset($row['is_active'])) {
+                self::$cachedIsActive = (int) $row['is_active'] === 1 || $row['is_active'] === true;
+                return self::$cachedIsActive;
+            }
+        } catch (\Throwable $e) {
+            error_log('Error checking webinar registration status: ' . $e->getMessage());
+        }
+
+        // Default to enabled if table is not seeded or during initial setup
+        self::$cachedIsActive = true;
+        return self::$cachedIsActive;
+    }
+
+    /**
+     * Set registration status (active or inactive) for the latest webinar record.
+     */
+    public function setRegistrationStatus(bool $isActive): void
+    {
+        $pdo = Database::connection();
+        $existing = $pdo->query('SELECT id FROM webinar_details ORDER BY id DESC LIMIT 1')->fetch();
+        $activeVal = $isActive ? 1 : 0;
+
+        if ($existing !== false && !empty($existing['id'])) {
+            $stmt = $pdo->prepare('UPDATE webinar_details SET is_active = :is_active WHERE id = :id');
+            $stmt->execute([
+                ':is_active' => $activeVal,
+                ':id' => (int) $existing['id'],
+            ]);
+        } else {
+            $row = $this->seedDefault();
+            $stmt = $pdo->prepare('UPDATE webinar_details SET is_active = :is_active WHERE id = :id');
+            $stmt->execute([
+                ':is_active' => $activeVal,
+                ':id' => (int) $row['id'],
+            ]);
+        }
+
+        self::$cachedIsActive = $isActive;
+    }
+
     /**
      * Get the active webinar details. Seeds default content if table is empty.
+     * When $allowInactive is true, returns the latest record regardless of is_active status (used by admin).
      *
      * @return array<string, mixed>
      */
-    public function getActive(): array
+    public function getActive(bool $allowInactive = false): array
     {
         $pdo = Database::connection();
-        $stmt = $pdo->prepare('SELECT * FROM webinar_details WHERE is_active = 1 ORDER BY id DESC LIMIT 1');
+        $sql = $allowInactive
+            ? 'SELECT * FROM webinar_details ORDER BY id DESC LIMIT 1'
+            : 'SELECT * FROM webinar_details WHERE is_active = 1 ORDER BY id DESC LIMIT 1';
+        $stmt = $pdo->prepare($sql);
         $stmt->execute();
         $row = $stmt->fetch();
 
@@ -28,8 +87,18 @@ final class WebinarRepository
             return $row;
         }
 
-        // Seed default webinar details if none exist
-        return $this->seedDefault();
+        if ($allowInactive) {
+            return $this->seedDefault();
+        }
+
+        // Check if any record exists at all before seeding
+        $any = $pdo->query('SELECT COUNT(*) FROM webinar_details')->fetchColumn();
+        if ((int) $any === 0) {
+            return $this->seedDefault();
+        }
+
+        // Records exist, but none are active
+        return [];
     }
 
     /**
@@ -41,7 +110,7 @@ final class WebinarRepository
     public function saveOrUpdateActive(array $data): array
     {
         $pdo = Database::connection();
-        $existing = $pdo->query('SELECT id FROM webinar_details WHERE is_active = 1 ORDER BY id DESC LIMIT 1')->fetch();
+        $existing = $pdo->query('SELECT id, is_active FROM webinar_details ORDER BY id DESC LIMIT 1')->fetch();
 
         $title = trim((string) ($data['title'] ?? ''));
         $subtitle = trim((string) ($data['subtitle'] ?? ''));
@@ -54,6 +123,10 @@ final class WebinarRepository
         $feeInr = isset($data['fee_inr']) && (string) $data['fee_inr'] !== '' ? (float) $data['fee_inr'] : $envFee;
         $whatsappGroupLink = trim((string) ($data['whatsapp_group_link'] ?? ''));
         $imageUrl = trim((string) ($data['image_url'] ?? ''));
+
+        $isActive = isset($data['is_active'])
+            ? ($data['is_active'] ? 1 : 0)
+            : ($existing !== false && isset($existing['is_active']) ? (int) $existing['is_active'] : 1);
 
         if ($existing !== false && !empty($existing['id'])) {
             $id = (int) $existing['id'];
@@ -68,6 +141,7 @@ final class WebinarRepository
                         fee_inr = :fee_inr,
                         whatsapp_group_link = :whatsapp_group_link,
                         image_url = :image_url,
+                        is_active = :is_active,
                         updated_at = ' . (Database::driver() === 'pgsql' ? 'NOW()' : (Database::driver() === 'mysql' ? 'NOW()' : 'CURRENT_TIMESTAMP')) . '
                     WHERE id = :id';
             $stmt = $pdo->prepare($sql);
@@ -82,10 +156,12 @@ final class WebinarRepository
                 ':fee_inr' => $feeInr,
                 ':whatsapp_group_link' => $whatsappGroupLink !== '' ? $whatsappGroupLink : null,
                 ':image_url' => $imageUrl !== '' ? $imageUrl : null,
+                ':is_active' => $isActive,
                 ':id' => $id,
             ]);
 
-            return $this->getActive();
+            self::$cachedIsActive = (bool) $isActive;
+            return $this->getActive(true);
         }
 
         $sql = 'INSERT INTO webinar_details (
@@ -93,7 +169,7 @@ final class WebinarRepository
                     speaker, fee_inr, whatsapp_group_link, image_url, is_active
                 ) VALUES (
                     :title, :subtitle, :description, :event_date, :event_time, :venue_platform,
-                    :speaker, :fee_inr, :whatsapp_group_link, :image_url, 1
+                    :speaker, :fee_inr, :whatsapp_group_link, :image_url, :is_active
                 )';
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
@@ -107,9 +183,11 @@ final class WebinarRepository
             ':fee_inr' => $feeInr,
             ':whatsapp_group_link' => $whatsappGroupLink !== '' ? $whatsappGroupLink : null,
             ':image_url' => $imageUrl !== '' ? $imageUrl : null,
+            ':is_active' => $isActive,
         ]);
 
-        return $this->getActive();
+        self::$cachedIsActive = (bool) $isActive;
+        return $this->getActive(true);
     }
 
     /**

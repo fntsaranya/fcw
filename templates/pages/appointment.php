@@ -37,13 +37,16 @@ $minDate = date('Y-m-d');
                     <div style="text-align: left;">
                         <label for="preferred_date" style="display: block; margin-bottom: 0.4rem; font-weight: 500;">Preferred Date *</label>
                         <input type="date" id="preferred_date" name="preferred_date" min="<?= e($minDate) ?>" value="<?= e((string) ($oldInput['preferred_date'] ?? '')) ?>" required style="width: 100%; padding: 0.9rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); background: rgba(255,255,255,0.8); font-family: var(--font-body);">
+                        <div id="date_availability_notice" style="display: none; color: #dc2626; font-size: 0.88rem; margin-top: 0.4rem; font-weight: 500;">
+                            <i class="fas fa-calendar-times"></i> This date is unavailable for appointments. Please choose another date.
+                        </div>
                     </div>
                     <div style="text-align: left;">
                         <label for="preferred_time" style="display: block; margin-bottom: 0.4rem; font-weight: 500;">Preferred Time</label>
                         <select id="preferred_time" name="preferred_time" style="width: 100%; padding: 0.9rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); background: rgba(255,255,255,0.8); font-family: var(--font-body);">
                             <option value="">Select a time slot</option>
                             <?php
-                            $slots = [
+                            $slots = $availableSlots ?? [
                                 "10:00 AM - 10:30 AM", "10:30 AM - 11:00 AM",
                                 "11:00 AM - 11:30 AM", "11:30 AM - 12:00 PM",
                                 "12:00 PM - 12:30 PM", "12:30 PM - 01:00 PM",
@@ -59,6 +62,9 @@ $minDate = date('Y-m-d');
                             }
                             ?>
                         </select>
+                        <div id="slots_availability_notice" style="display: none; color: #b45309; font-size: 0.88rem; margin-top: 0.4rem; font-weight: 500;">
+                            <i class="fas fa-info-circle"></i> All slots for this date are booked or unavailable. Please choose another date.
+                        </div>
                     </div>
                 </div>
 
@@ -75,18 +81,44 @@ $minDate = date('Y-m-d');
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const bookedSlots = <?= json_encode($bookedSlots ?? []) ?>;
+        const disabledDates = <?= json_encode($disabledDates ?? []) ?>;
+        const disabledSlots = <?= json_encode($disabledSlots ?? []) ?>;
         const dateInput = document.getElementById('preferred_date');
         const timeSelect = document.getElementById('preferred_time');
+        const dateNotice = document.getElementById('date_availability_notice');
+        const slotsNotice = document.getElementById('slots_availability_notice');
         const allOptions = Array.from(timeSelect.options);
 
         function updateAvailableSlots() {
             const selectedDate = dateInput.value;
+            dateNotice.style.display = 'none';
+            slotsNotice.style.display = 'none';
+            dateInput.setCustomValidity('');
+
+            if (!selectedDate) {
+                timeSelect.disabled = false;
+                return;
+            }
+
+            // Check if entire date is disabled
+            if (disabledDates.includes(selectedDate)) {
+                dateNotice.style.display = 'block';
+                dateInput.setCustomValidity('This date is unavailable for appointments.');
+                timeSelect.value = '';
+                timeSelect.disabled = true;
+                return;
+            }
+
+            timeSelect.disabled = false;
             const bookedForDate = bookedSlots[selectedDate] || [];
+            const blockedForDate = disabledSlots[selectedDate] || [];
+            let visibleCount = 0;
 
             allOptions.forEach(option => {
                 if (option.value === "") return;
                 
-                if (bookedForDate.includes(option.value)) {
+                const isUnavailable = bookedForDate.includes(option.value) || blockedForDate.includes(option.value);
+                if (isUnavailable) {
                     option.style.display = 'none';
                     option.disabled = true;
                     if (timeSelect.value === option.value) {
@@ -95,11 +127,18 @@ $minDate = date('Y-m-d');
                 } else {
                     option.style.display = '';
                     option.disabled = false;
+                    visibleCount++;
                 }
             });
+
+            if (visibleCount === 0) {
+                slotsNotice.style.display = 'block';
+                timeSelect.disabled = true;
+            }
         }
 
         dateInput.addEventListener('change', updateAvailableSlots);
+        dateInput.addEventListener('input', updateAvailableSlots);
         if (dateInput.value) {
             updateAvailableSlots();
         }

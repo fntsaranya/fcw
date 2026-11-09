@@ -20,10 +20,20 @@ try {
         // Ignore if already exists
     }
 
+    // Ensure older databases have the is_active column on webinar_details
+    try {
+        $pdo->exec("
+            ALTER TABLE webinar_details 
+            ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1
+        ");
+    } catch (\Throwable $e) {
+        // Ignore if already exists
+    }
+
     echo "<h3>Database updated successfully!</h3>";
-    echo "<p>All webinar, enquiry, payment, and intake tables have been checked and synchronized.</p>";
+    echo "<p>All webinar, enquiry, payment, intake, and appointment availability tables have been checked and synchronized.</p>";
     echo "<p><strong>Active Webinar:</strong> " . htmlspecialchars((string)($activeWebinar['title'] ?? '')) . "</p>";
-    echo "<p><a href='/admin/contacts'>Go to Admin Data Manager</a> | <a href='/enquiry'>Go to Enquiry Page</a></p>";
+    echo "<p><a href='/admin/contacts?tab=appointments'>Go to Admin Appointments Manager</a> | <a href='/contact'>Go to Appointment Booking</a></p>";
 } catch (\Throwable $e) {
     echo "<h3>Database Update Error:</h3>";
     echo "<p>" . htmlspecialchars($e->getMessage()) . "</p>";

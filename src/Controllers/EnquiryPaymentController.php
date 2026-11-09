@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FCW\Controllers;
 
 use FCW\Core\Config;
+use FCW\Core\Flash;
 use FCW\Core\View;
 use FCW\Repositories\EnquiryRegistrationRepository;
 use FCW\Repositories\WebinarRepository;
@@ -24,6 +25,11 @@ final class EnquiryPaymentController
 
     public function paymentPage(): void
     {
+        if (!WebinarRepository::isRegistrationEnabled()) {
+            Flash::add('error', 'Workshop registrations are currently closed.');
+            View::redirect('/');
+        }
+
         $reference = trim((string) ($_GET['ref'] ?? ''));
         $token = trim((string) ($_GET['token'] ?? ''));
 

@@ -5,6 +5,8 @@ $activeWebinar = $activeWebinar ?? [];
 $assessments = $assessments ?? [];
 $blogs = $blogs ?? [];
 $appointments = $appointments ?? [];
+$availabilityOverrides = $availabilityOverrides ?? [];
+$defaultSlots = $defaultSlots ?? [];
 $booleanFields = $booleanFields ?? [];
 $fieldLabels = $fieldLabels ?? [];
 $activeTab = $activeTab ?? 'contacts';
@@ -33,6 +35,73 @@ $activeTab = $activeTab ?? 'contacts';
                 <i class="fas fa-exclamation-circle"></i> <?= e((string) $inlineErrorMessage) ?>
             </div>
         <?php endif; ?>
+
+        <!-- Workshop / Enquiry Registration Status Control -->
+        <?php $isRegEnabled = !empty($isEnquiryEnabled); ?>
+        <div id="enquiry-toggle-panel" class="glass-card" style="margin-bottom: 1.5rem; background: white; border-radius: 14px; padding: 1.4rem 1.6rem; border: 1px solid <?= $isRegEnabled ? '#10b981' : '#f59e0b' ?>; box-shadow: 0 4px 18px rgba(0,0,0,0.03);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.2rem;">
+                <div>
+                    <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #64748b; margin-bottom: 0.35rem;">
+                        <i class="fas fa-sliders-h"></i> "Register for Enquiry" Page Public Visibility
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+                        <?php if ($isRegEnabled): ?>
+                            <span style="display: inline-flex; align-items: center; gap: 0.45rem; background: #ecfdf5; color: #065f46; font-weight: 700; font-size: 0.92rem; padding: 0.35rem 0.9rem; border-radius: 20px; border: 1px solid #a7f3d0;">
+                                <i class="fas fa-check-circle" style="color: #10b981;"></i> TURNED ON (Publicly Visible)
+                            </span>
+                            <span style="font-size: 0.88rem; color: #64748b;">
+                                Visible in header & footer navigation. Visitors can view workshop details and register.
+                            </span>
+                        <?php else: ?>
+                            <span style="display: inline-flex; align-items: center; gap: 0.45rem; background: #fef2f2; color: #991b1b; font-weight: 700; font-size: 0.92rem; padding: 0.35rem 0.9rem; border-radius: 20px; border: 1px solid #fecaca;">
+                                <i class="fas fa-ban" style="color: #ef4444;"></i> TURNED OFF (Hidden from Public)
+                            </span>
+                            <span style="font-size: 0.88rem; color: #64748b;">
+                                Hidden from navbar & footer. Visitors cannot access or register until you turn this on.
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="button" onclick="document.getElementById('toggleRegistrationModal').style.display='flex';" class="btn-primary" style="background: <?= $isRegEnabled ? '#dc2626' : 'var(--primary-color)' ?>; border-color: <?= $isRegEnabled ? '#dc2626' : 'var(--primary-color)' ?>; padding: 0.65rem 1.4rem; font-size: 0.92rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; border-radius: 8px;">
+                        <i class="fas <?= $isRegEnabled ? 'fa-toggle-off' : 'fa-toggle-on' ?>"></i>
+                        <?= $isRegEnabled ? 'Turn OFF Registration Page' : 'Turn ON Registration Page' ?>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal for Toggle Registration Status with PIN -->
+        <div id="toggleRegistrationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+            <div class="glass-card" style="background: white; padding: 2rem; width: 100%; max-width: 420px; border-radius: 16px; text-align: center; position: relative;">
+                <span onclick="document.getElementById('toggleRegistrationModal').style.display='none';" style="position: absolute; top: 1rem; right: 1rem; cursor: pointer; font-size: 1.5rem; color: #64748b;">&times;</span>
+                <div style="width: 50px; height: 50px; border-radius: 50%; background: <?= $isRegEnabled ? '#fee2e2' : '#dcfce7' ?>; color: <?= $isRegEnabled ? '#dc2626' : '#16a34a' ?>; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin: 0 auto 1rem auto;">
+                    <i class="fas <?= $isRegEnabled ? 'fa-toggle-off' : 'fa-toggle-on' ?>"></i>
+                </div>
+                <h3 style="color: var(--primary-color); margin-bottom: 0.6rem;">
+                    <?= $isRegEnabled ? 'Turn OFF Registration Page?' : 'Turn ON Registration Page?' ?>
+                </h3>
+                <p style="color: #64748b; font-size: 0.92rem; margin-bottom: 1.5rem; line-height: 1.5;">
+                    <?= $isRegEnabled 
+                        ? 'This will hide the "Register for Enquiry" page and links from public visitors.' 
+                        : 'This will make the "Register for Enquiry" page and links visible to public visitors.' ?>
+                </p>
+                <form action="/admin/webinar/toggle-status" method="post" style="margin: 0;">
+                    <input type="hidden" name="is_active" value="<?= $isRegEnabled ? '0' : '1' ?>">
+                    <div style="margin-bottom: 1.2rem;">
+                        <label for="toggle_reg_pin" style="display: block; text-align: left; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 0.4rem;">Admin PIN *</label>
+                        <input type="password" id="toggle_reg_pin" name="pin" required placeholder="Enter 6-digit Admin PIN" autocomplete="current-password" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem;">
+                    </div>
+                    <div style="display: flex; gap: 0.8rem;">
+                        <button type="button" onclick="document.getElementById('toggleRegistrationModal').style.display='none';" style="flex: 1; padding: 0.8rem; border-radius: 8px; border: 1px solid #cbd5e1; background: white; color: #64748b; cursor: pointer; font-weight: 600;">Cancel</button>
+                        <button type="submit" class="btn-primary" style="flex: 1; padding: 0.8rem; background: <?= $isRegEnabled ? '#dc2626' : 'var(--primary-color)' ?>; border-color: <?= $isRegEnabled ? '#dc2626' : 'var(--primary-color)' ?>;">
+                            Confirm & <?= $isRegEnabled ? 'Turn OFF' : 'Turn ON' ?>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         <!-- Webinar Details Management Panel -->
         <div id="webinar-panel" class="glass-card" style="margin-bottom: 2rem;">
@@ -107,6 +176,13 @@ $activeTab = $activeTab ?? 'contacts';
                 <div>
                     <label for="webinar_description" style="display:block; margin-bottom:0.4rem; font-weight:600;">Description & Key Takeaways *</label>
                     <textarea id="webinar_description" name="description" rows="5" required style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid rgba(0,0,0,0.15);"><?= e((string)($activeWebinar['description'] ?? '')) ?></textarea>
+                </div>
+
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.9rem 1.2rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <input type="checkbox" id="webinar_is_active" name="is_active" value="1" <?= $isRegEnabled ? 'checked' : '' ?> style="width: 18px; height: 18px; cursor: pointer;">
+                    <label for="webinar_is_active" style="cursor: pointer; font-weight: 600; color: #1e293b; margin: 0;">
+                        Enable "Register for Enquiry" public page for this workshop
+                    </label>
                 </div>
 
                 <div>
@@ -508,6 +584,184 @@ $activeTab = $activeTab ?? 'contacts';
             <div class="glass-card" style="margin-bottom:1rem; background:white; padding: 1.2rem;">
                 <p style="margin:0; color:#475569;">Appointments booked through the paid flow appear here with Razorpay order, payment, gateway, and booking status.</p>
             </div>
+
+            <!-- Doctor Availability & Appointment Slots Manager Card -->
+            <div class="glass-card" style="margin-bottom: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden;">
+                <button id="toggleAvailabilityForm" type="button" style="width: 100%; padding: 1.1rem 1.4rem; background: linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(13, 148, 136, 0.15)); border: 1px solid #0f766e; border-radius: 10px; color: #0f766e; cursor: pointer; font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
+                    <span><i class="fas fa-calendar-times" style="margin-right: 0.5rem;"></i> Manage Availability & Appointment Slots (<?= count($availabilityOverrides) ?> active blocks)</span>
+                    <i class="fas fa-chevron-down" id="toggleAvailabilityIcon" style="transition: transform 0.3s;"></i>
+                </button>
+
+                <div id="availabilityPanelBody" style="display: none; padding: 1.5rem;">
+                    <!-- Availability Form -->
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.4rem; margin-bottom: 1.8rem;">
+                        <h4 style="margin: 0 0 0.8rem 0; color: #0f766e; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-ban"></i> Block a Date or Specific Time Slots
+                        </h4>
+                        <p style="margin: 0 0 1.2rem 0; color: #64748b; font-size: 0.88rem;">
+                            Block whole days (holidays, leaves) or specific time slots so clients cannot book them on the appointment form.
+                        </p>
+
+                        <form action="/admin/availability/add" method="post" style="display: grid; gap: 1.2rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 600; font-size: 0.9rem; color: #334155;">
+                                        Select Date to Block *
+                                    </label>
+                                    <input 
+                                        type="date" 
+                                        name="override_date" 
+                                        min="<?= date('Y-m-d') ?>" 
+                                        required 
+                                        style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.9rem;"
+                                    >
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 600; font-size: 0.9rem; color: #334155;">
+                                        Reason / Note (Optional)
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        name="reason" 
+                                        placeholder="e.g. Doctor on leave, Clinic closed, Emergency" 
+                                        style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.9rem;"
+                                    >
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style="display: block; margin-bottom: 0.6rem; font-weight: 600; font-size: 0.9rem; color: #334155;">
+                                    Block Scope *
+                                </label>
+                                <div style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap;">
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500; font-size: 0.92rem; color: #1e293b;">
+                                        <input type="radio" name="override_scope" value="all" checked onchange="toggleScope(this.value)">
+                                        <span><i class="fas fa-calendar-day" style="color: #ef4444;"></i> Block Entire Day</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500; font-size: 0.92rem; color: #1e293b;">
+                                        <input type="radio" name="override_scope" value="slots" onchange="toggleScope(this.value)">
+                                        <span><i class="fas fa-clock" style="color: #f59e0b;"></i> Block Specific Time Slots Only</span>
+                                    </label>
+                                </div>
+
+                                <div id="slotsSelectorContainer" style="display: none; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-top: 0.5rem;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;">
+                                        <span style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Check the time slot(s) you want to disable:</span>
+                                        <div style="display: flex; gap: 0.5rem;">
+                                            <button type="button" onclick="toggleAllSlots(true)" style="padding: 0.25rem 0.6rem; font-size: 0.78rem; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; color: #0369a1; cursor: pointer;">Select All</button>
+                                            <button type="button" onclick="toggleAllSlots(false)" style="padding: 0.25rem 0.6rem; font-size: 0.78rem; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; color: #475569; cursor: pointer;">Deselect All</button>
+                                        </div>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.6rem;">
+                                        <?php foreach ($defaultSlots as $s): ?>
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; background: #f8fafc; padding: 0.5rem 0.7rem; border-radius: 6px; border: 1px solid #e2e8f0; cursor: pointer;">
+                                                <input type="checkbox" name="slots[]" value="<?= e($s) ?>" class="slot-checkbox">
+                                                <span><?= e($s) ?></span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: end;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.4rem; font-weight: 600; font-size: 0.9rem; color: #334155;">
+                                        Admin PIN *
+                                    </label>
+                                    <input 
+                                        type="password" 
+                                        name="pin" 
+                                        placeholder="Enter Admin PIN" 
+                                        required 
+                                        style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.9rem;"
+                                    >
+                                </div>
+                                <div>
+                                    <button type="submit" class="btn-primary" style="width: 100%; padding: 0.8rem; background: #0f766e; border-color: #0f766e; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                        <i class="fas fa-lock"></i> Save Availability Override
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Active Overrides Table -->
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;">
+                            <h4 style="margin: 0; color: #334155; font-size: 1rem; font-weight: 600;">
+                                <i class="fas fa-list-check" style="color: #0f766e;"></i> Upcoming Blocked Dates & Slots (<?= count($availabilityOverrides) ?>)
+                            </h4>
+                            <span style="font-size: 0.82rem; color: #64748b;">Only upcoming and today's active overrides are listed below</span>
+                        </div>
+
+                        <?php if (empty($availabilityOverrides)): ?>
+                            <div style="text-align: center; padding: 2rem; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; color: #64748b; font-size: 0.9rem;">
+                                <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.5rem; margin-bottom: 0.5rem; display: block;"></i>
+                                All upcoming dates and time slots are currently open and available for patient booking.
+                            </div>
+                        <?php else: ?>
+                            <div class="admin-table-scroll-container" style="border: 1px solid #e2e8f0; border-radius: 8px;">
+                                <table class="admin-data-table teal-header" style="margin: 0;">
+                                    <thead>
+                                        <tr>
+                                            <th style="padding: 0.8rem; text-align: left;">Date</th>
+                                            <th style="padding: 0.8rem; text-align: left;">Scope</th>
+                                            <th style="padding: 0.8rem; text-align: left;">Time Slot</th>
+                                            <th style="padding: 0.8rem; text-align: left;">Reason</th>
+                                            <th style="padding: 0.8rem; text-align: left;">Created At</th>
+                                            <th style="padding: 0.8rem; text-align: center;">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($availabilityOverrides as $override): ?>
+                                            <?php 
+                                            $isFullDay = empty($override['slot_time']) || $override['slot_time'] === 'ALL';
+                                            ?>
+                                            <tr>
+                                                <td style="padding: 0.8rem; font-weight: 600; white-space: nowrap;">
+                                                    <i class="far fa-calendar" style="color: #0f766e; margin-right: 0.4rem;"></i>
+                                                    <?= e((string) $override['override_date']) ?>
+                                                </td>
+                                                <td style="padding: 0.8rem; white-space: nowrap;">
+                                                    <?php if ($isFullDay): ?>
+                                                        <span style="background: #fee2e2; color: #991b1b; padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem;">
+                                                            <i class="fas fa-ban"></i> Entire Day
+                                                        </span>
+                                                    <?php else: ?>
+                                                        <span style="background: #fef3c7; color: #92400e; padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem;">
+                                                            <i class="fas fa-clock"></i> Specific Slot
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td style="padding: 0.8rem; font-weight: 500; white-space: nowrap;">
+                                                    <?= $isFullDay ? '<span style="color:#64748b; font-style:italic;">All 16 slots closed</span>' : e((string) $override['slot_time']) ?>
+                                                </td>
+                                                <td style="padding: 0.8rem; color: #475569;">
+                                                    <?= e((string) ($override['reason'] ?? '—')) ?>
+                                                </td>
+                                                <td style="padding: 0.8rem; color: #64748b; font-size: 0.85rem; white-space: nowrap;">
+                                                    <?= e(substr((string) ($override['created_at'] ?? ''), 0, 16)) ?>
+                                                </td>
+                                                <td style="padding: 0.8rem; text-align: center; white-space: nowrap;">
+                                                    <button 
+                                                        type="button" 
+                                                        onclick="openDeleteAvailabilityModal(<?= (int) $override['id'] ?>)" 
+                                                        style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem;"
+                                                        title="Remove block and re-open date/slot"
+                                                    >
+                                                        <i class="fas fa-undo"></i> Re-enable
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
             <div class="glass-card" style="padding: 1.5rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 1rem;">
                     <h3 style="color: #0f766e; margin: 0; font-size: 1.15rem;">
@@ -800,6 +1054,20 @@ $activeTab = $activeTab ?? 'contacts';
     </div>
 </div>
 
+<div id="deleteAvailabilityModal" style="display:none; position:fixed; inset:0; background: rgba(0,0,0,0.65); z-index:1000; align-items:center; justify-content:center;">
+    <div class="glass-card" style="background:white; width:90%; max-width:440px;">
+        <h3 style="color:#0f766e;"><i class="fas fa-undo"></i> Re-enable Date / Slot</h3>
+        <p style="margin-bottom:1rem; color:#475569;">This will remove the block and make this date/time slot available for clients to book. Please enter Admin PIN to confirm.</p>
+        <form id="deleteAvailabilityForm" method="post" style="display:grid; gap:0.9rem;">
+            <input type="password" name="pin" required style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #ccc;" placeholder="Admin PIN">
+            <div style="display:flex; gap:0.7rem;">
+                <button type="submit" style="flex:1; border:none; border-radius:8px; background:#0f766e; color:white; padding:0.8rem; cursor:pointer; font-weight:600;"><i class="fas fa-check"></i> Re-enable</button>
+                <button type="button" onclick="closeDeleteAvailabilityModal()" style="flex:1; border:none; border-radius:8px; background:#6b7280; color:white; padding:0.8rem; cursor:pointer;">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <style>
     .badge {
         padding: 0.3rem 0.8rem;
@@ -956,9 +1224,14 @@ $activeTab = $activeTab ?? 'contacts';
             styleTab(name, name === selected);
         });
 
+        const enquiryTogglePanel = document.getElementById('enquiry-toggle-panel');
         const webinarPanel = document.getElementById('webinar-panel');
         const addContactPanel = document.getElementById('add-contact-panel');
         const addBlogPanel = document.getElementById('add-blog-panel');
+
+        if (enquiryTogglePanel) {
+            enquiryTogglePanel.style.display = selected === 'contacts' ? 'block' : 'none';
+        }
 
         if (webinarPanel) {
             webinarPanel.style.display = selected === 'contacts' ? 'block' : 'none';
@@ -1135,8 +1408,46 @@ $activeTab = $activeTab ?? 'contacts';
         document.getElementById('editIntakeModal').style.display = 'none';
     }
 
+    function toggleScope(scope) {
+        const container = document.getElementById('slotsSelectorContainer');
+        if (container) {
+            container.style.display = scope === 'slots' ? 'block' : 'none';
+        }
+        if (scope === 'all') {
+            document.querySelectorAll('.slot-checkbox').forEach(function(cb) {
+                cb.checked = false;
+            });
+        }
+    }
+
+    function toggleAllSlots(checked) {
+        document.querySelectorAll('.slot-checkbox').forEach(function(cb) {
+            cb.checked = checked;
+        });
+    }
+
+    const toggleAvailBtn = document.getElementById('toggleAvailabilityForm');
+    const availPanelBody = document.getElementById('availabilityPanelBody');
+    const toggleAvailIcon = document.getElementById('toggleAvailabilityIcon');
+    if (toggleAvailBtn && availPanelBody && toggleAvailIcon) {
+        toggleAvailBtn.addEventListener('click', function() {
+            const open = availPanelBody.style.display === 'none' || availPanelBody.style.display === '';
+            availPanelBody.style.display = open ? 'block' : 'none';
+            toggleAvailIcon.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+        });
+    }
+
+    function openDeleteAvailabilityModal(id) {
+        document.getElementById('deleteAvailabilityForm').action = '/admin/availability/delete/' + id;
+        document.getElementById('deleteAvailabilityModal').style.display = 'flex';
+    }
+
+    function closeDeleteAvailabilityModal() {
+        document.getElementById('deleteAvailabilityModal').style.display = 'none';
+    }
+
     window.addEventListener('click', function (event) {
-        ['editContactModal', 'deleteContactModal', 'deleteEnquiryModal', 'editAssessmentModal', 'deleteAssessmentModal', 'editBlogModal', 'deleteBlogModal', 'deleteAppointmentModal', 'downloadPdfModal', 'editIntakeModal'].forEach(function (id) {
+        ['editContactModal', 'deleteContactModal', 'deleteEnquiryModal', 'editAssessmentModal', 'deleteAssessmentModal', 'editBlogModal', 'deleteBlogModal', 'deleteAppointmentModal', 'downloadPdfModal', 'editIntakeModal', 'deleteAvailabilityModal'].forEach(function (id) {
             const modal = document.getElementById(id);
             if (event.target === modal) {
                 modal.style.display = 'none';

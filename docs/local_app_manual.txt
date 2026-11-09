@@ -32,7 +32,6 @@ http://localhost:8000
 Home Page: http://localhost:8000 (Scroll down to check out the new Patient Journeys testimonial cards)
 About Us: http://localhost:8000/about
 Services & Programs: http://localhost:8000/services
-Resources: http://localhost:8000/resources
 Register for Enquiry / Webinar: http://localhost:8000/enquiry
 Book Appointment: http://localhost:8000/contact
 4. Live Updates While Developing

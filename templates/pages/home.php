@@ -40,34 +40,7 @@
     </div>
 </section>
 
-<section class="section">
-    <div class="container">
-        <h2 style="margin-bottom: 3rem;">Symptom vs. Root Cause</h2>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
-            <div class="glass-card" style="background: linear-gradient(135deg, #6B9080 0%, #4A6A5D 100%); color: white; border: none;">
-                <h3 style="color: white; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 1rem;">Symptoms</h3>
-                <ul style="list-style: none; font-size: 1.2rem; line-height: 2;">
-                    <li><i class="fas fa-exclamation-circle" style="opacity: 0.8;"></i> Fatigue & Burnout</li>
-                    <li><i class="fas fa-exclamation-circle" style="opacity: 0.8;"></i> Bloating & Indigestion</li>
-                    <li><i class="fas fa-exclamation-circle" style="opacity: 0.8;"></i> Brain Fog</li>
-                    <li><i class="fas fa-exclamation-circle" style="opacity: 0.8;"></i> Hormonal Acne</li>
-                </ul>
-            </div>
-
-            <div class="glass-card" style="background: linear-gradient(135deg, #E0C097 0%, #D4B48C 100%); color: var(--text-dark); border: none;">
-                <h3 style="color: var(--text-dark); border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 1rem;">Root Causes</h3>
-                <ul style="list-style: none; font-size: 1.2rem; line-height: 2;">
-                    <li><i class="fas fa-check-circle" style="color: var(--primary-color);"></i> Gut Microbiome Imbalance</li>
-                    <li><i class="fas fa-check-circle" style="color: var(--primary-color);"></i> Nutrient Deficiencies</li>
-                    <li><i class="fas fa-check-circle" style="color: var(--primary-color);"></i> Hidden Inflammation</li>
-                    <li><i class="fas fa-check-circle" style="color: var(--primary-color);"></i> Chronic Stress Response</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="section" style="padding-top: 1rem; padding-bottom: 5rem;">
+<section class="section" style="padding-top: 2rem; padding-bottom: 5rem;">
     <div class="container">
         <div style="text-align: center; max-width: 800px; margin: 0 auto 3rem auto;">
             <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(47, 79, 79, 0.08); color: var(--primary-color); padding: 0.45rem 1.2rem; border-radius: 50px; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 1rem;">
